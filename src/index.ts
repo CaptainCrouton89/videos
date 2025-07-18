@@ -5,6 +5,10 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { promises as fs } from "fs";
 import path from "path";
 import { z } from "zod";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 // Create the MCP server
 const server = new McpServer({
@@ -744,6 +748,467 @@ ${
             }`,
           },
         ],
+      };
+    }
+  }
+);
+
+// Video metadata extraction tool
+server.tool(
+  "get-video-metadata",
+  "Extract comprehensive video metadata including duration, resolution, fps, codec, aspect ratio, audio properties, and orientation using FFprobe",
+  {
+    file_path: z.string().describe("Absolute path to the video file"),
+  },
+  async ({ file_path }) => {
+    try {
+      // Check if file exists
+      await fs.access(file_path);
+      
+      // Execute FFprobe command to get comprehensive metadata
+      const ffprobeCommand = `ffprobe -v quiet -print_format json -show_format -show_streams "${file_path}"`;
+      const { stdout, stderr } = await execAsync(ffprobeCommand);
+      
+      if (stderr) {
+        throw new Error(`FFprobe error: ${stderr}`);
+      }
+
+      const metadata = JSON.parse(stdout);
+      
+      // Extract video stream information
+      const videoStream = metadata.streams.find((stream: any) => stream.codec_type === 'video');
+      const audioStream = metadata.streams.find((stream: any) => stream.codec_type === 'audio');
+      const format = metadata.format;
+
+      if (!videoStream) {
+        throw new Error("No video stream found in the file");
+      }
+
+      // Calculate precise duration
+      const duration = parseFloat(format.duration || videoStream.duration || '0');
+      
+      // Extract video properties
+      const width = parseInt(videoStream.width || '0');
+      const height = parseInt(videoStream.height || '0');
+      const aspectRatio = width && height ? `${width}:${height}` : 'unknown';
+      const fps = videoStream.r_frame_rate ? eval(videoStream.r_frame_rate) : 'unknown';
+      const videoCodec = videoStream.codec_name || 'unknown';
+      const videoBitrate = videoStream.bit_rate ? parseInt(videoStream.bit_rate) : null;
+      
+      // Determine orientation
+      const orientation = width > height ? 'landscape' : height > width ? 'portrait' : 'square';
+      
+      // Extract audio properties if available
+      let audioProperties = null;
+      if (audioStream) {
+        audioProperties = {
+          codec: audioStream.codec_name || 'unknown',
+          sample_rate: audioStream.sample_rate ? parseInt(audioStream.sample_rate) : null,
+          channels: audioStream.channels || null,
+          bitrate: audioStream.bit_rate ? parseInt(audioStream.bit_rate) : null,
+          channel_layout: audioStream.channel_layout || 'unknown'
+        };
+      }
+
+      // Format file size
+      const fileSizeBytes = parseInt(format.size || '0');
+      const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `📹 **Video Metadata Analysis**
+
+**📁 File Information:**
+- Path: ${file_path}
+- Size: ${fileSizeMB} MB (${fileSizeBytes.toLocaleString()} bytes)
+- Duration: ${duration.toFixed(3)} seconds (${Math.floor(duration / 60)}:${(duration % 60).toFixed(3).padStart(6, '0')})
+
+**🎬 Video Properties:**
+- Resolution: ${width}x${height}
+- Aspect Ratio: ${aspectRatio}
+- Orientation: ${orientation}
+- FPS: ${typeof fps === 'number' ? fps.toFixed(2) : fps}
+- Codec: ${videoCodec}
+${videoBitrate ? `- Video Bitrate: ${(videoBitrate / 1000).toFixed(0)} kbps` : ''}
+
+${audioProperties ? `**🎵 Audio Properties:**
+- Codec: ${audioProperties.codec}
+- Sample Rate: ${audioProperties.sample_rate ? `${audioProperties.sample_rate} Hz` : 'unknown'}
+- Channels: ${audioProperties.channels || 'unknown'}
+- Channel Layout: ${audioProperties.channel_layout}
+${audioProperties.bitrate ? `- Audio Bitrate: ${(audioProperties.bitrate / 1000).toFixed(0)} kbps` : ''}` : '**🔇 Audio:** No audio stream detected'}
+
+**📊 Format Information:**
+- Container: ${format.format_name || 'unknown'}
+- Container Long Name: ${format.format_long_name || 'unknown'}
+${format.bit_rate ? `- Overall Bitrate: ${(parseInt(format.bit_rate) / 1000).toFixed(0)} kbps` : ''}
+
+**🎯 Quick Stats:**
+- Is Landscape: ${orientation === 'landscape' ? 'Yes' : 'No'}
+- Is Portrait: ${orientation === 'portrait' ? 'Yes' : 'No'}
+- Has Audio: ${audioProperties ? 'Yes' : 'No'}
+- Video Stream Count: ${metadata.streams.filter((s: any) => s.codec_type === 'video').length}
+- Audio Stream Count: ${metadata.streams.filter((s: any) => s.codec_type === 'audio').length}`
+          }
+        ]
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `❌ Error analyzing video metadata: ${error instanceof Error ? error.message : String(error)}
+
+**Common Issues:**
+- FFprobe not installed (install via: brew install ffmpeg)
+- File path doesn't exist or is inaccessible
+- File is not a valid video format
+- Insufficient permissions to read the file`
+          }
+        ]
+      };
+    }
+  }
+);
+
+// Video speed adjustment tool
+server.tool(
+  "adjust-video-speed",
+  "Apply speed modification using setpts filter to change video playback speed",
+  {
+    input: z.string().describe("Absolute path to the input video file"),
+    speed_factor: z.number().describe("Speed factor (0.5 = half speed, 2.0 = double speed)"),
+    output: z.string().describe("Absolute path for the output video file"),
+  },
+  async ({ input, speed_factor, output }) => {
+    try {
+      // Validate input file exists
+      await fs.access(input);
+      
+      // Ensure output directory exists
+      await fs.mkdir(path.dirname(output), { recursive: true });
+      
+      // Calculate setpts value (inverse of speed factor)
+      const setptsValue = 1 / speed_factor;
+      
+      // Build FFmpeg command
+      const ffmpegCommand = `ffmpeg -i "${input}" -filter:v "setpts=${setptsValue}*PTS" -filter:a "atempo=${speed_factor}" -c:v libx264 -c:a aac "${output}"`;
+      
+      const { stdout, stderr } = await execAsync(ffmpegCommand);
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: `⚡ **Video Speed Adjustment Complete**
+
+**📁 Input:** ${input}
+**📁 Output:** ${output}
+**🎬 Speed Factor:** ${speed_factor}x (${speed_factor > 1 ? 'faster' : speed_factor < 1 ? 'slower' : 'normal'})
+**⚙️ Video Filter:** setpts=${setptsValue}*PTS
+**🎵 Audio Filter:** atempo=${speed_factor}
+
+✅ **Success!** Video speed has been adjusted and saved to the output file.`
+          }
+        ]
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `❌ Error adjusting video speed: ${error instanceof Error ? error.message : String(error)}
+
+**Common Issues:**
+- FFmpeg not installed (install via: brew install ffmpeg)
+- Input file doesn't exist or is inaccessible
+- Output directory doesn't exist or lacks write permissions
+- Invalid speed factor (must be > 0)`
+          }
+        ]
+      };
+    }
+  }
+);
+
+// Video scaling tool
+server.tool(
+  "scale-video",
+  "Resize video to target resolution while maintaining aspect ratio or forcing specific dimensions",
+  {
+    input: z.string().describe("Absolute path to the input video file"),
+    width: z.number().describe("Target width in pixels"),
+    height: z.number().describe("Target height in pixels"),
+    output: z.string().describe("Absolute path for the output video file"),
+    maintain_aspect: z.boolean().optional().describe("Maintain aspect ratio (default: false)"),
+  },
+  async ({ input, width, height, output, maintain_aspect = false }) => {
+    try {
+      // Validate input file exists
+      await fs.access(input);
+      
+      // Ensure output directory exists
+      await fs.mkdir(path.dirname(output), { recursive: true });
+      
+      // Build scale filter
+      const scaleFilter = maintain_aspect ? `scale=${width}:${height}:force_original_aspect_ratio=decrease` : `scale=${width}:${height}`;
+      
+      // Build FFmpeg command
+      const ffmpegCommand = `ffmpeg -i "${input}" -vf "${scaleFilter}" -c:v libx264 -c:a copy "${output}"`;
+      
+      const { stdout, stderr } = await execAsync(ffmpegCommand);
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: `📏 **Video Scaling Complete**
+
+**📁 Input:** ${input}
+**📁 Output:** ${output}
+**🎬 Target Resolution:** ${width}x${height}
+**⚙️ Scale Filter:** ${scaleFilter}
+**📐 Aspect Ratio:** ${maintain_aspect ? 'Maintained' : 'Forced to exact dimensions'}
+
+✅ **Success!** Video has been resized and saved to the output file.`
+          }
+        ]
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `❌ Error scaling video: ${error instanceof Error ? error.message : String(error)}
+
+**Common Issues:**
+- FFmpeg not installed (install via: brew install ffmpeg)
+- Input file doesn't exist or is inaccessible
+- Output directory doesn't exist or lacks write permissions
+- Invalid dimensions (must be > 0)`
+          }
+        ]
+      };
+    }
+  }
+);
+
+// Apply video filters tool
+server.tool(
+  "apply-video-filters",
+  "Apply custom FFmpeg video filters using filter strings for advanced video processing",
+  {
+    input: z.string().describe("Absolute path to the input video file"),
+    filter_string: z.string().describe("FFmpeg filter string (e.g., 'brightness=0.1,contrast=1.2')"),
+    output: z.string().describe("Absolute path for the output video file"),
+    copy_audio: z.boolean().optional().describe("Copy audio stream unchanged (default: true)"),
+  },
+  async ({ input, filter_string, output, copy_audio = true }) => {
+    try {
+      // Validate input file exists
+      await fs.access(input);
+      
+      // Ensure output directory exists
+      await fs.mkdir(path.dirname(output), { recursive: true });
+      
+      // Build FFmpeg command
+      const audioOption = copy_audio ? '-c:a copy' : '-c:a aac';
+      const ffmpegCommand = `ffmpeg -i "${input}" -vf "${filter_string}" -c:v libx264 ${audioOption} "${output}"`;
+      
+      const { stdout, stderr } = await execAsync(ffmpegCommand);
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: `🎨 **Video Filters Applied**
+
+**📁 Input:** ${input}
+**📁 Output:** ${output}
+**⚙️ Filter String:** ${filter_string}
+**🎵 Audio Processing:** ${copy_audio ? 'Copied unchanged' : 'Re-encoded with AAC'}
+
+✅ **Success!** Video filters have been applied and saved to the output file.
+
+**Example Filter Strings:**
+- brightness=0.1,contrast=1.2 (adjust brightness and contrast)
+- hue=s=0 (convert to grayscale)
+- rotate=PI/4 (rotate 45 degrees)
+- blur=5 (apply blur effect)
+- sharpen=luma_msize_x=5:luma_msize_y=5 (sharpen image)`
+          }
+        ]
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `❌ Error applying video filters: ${error instanceof Error ? error.message : String(error)}
+
+**Common Issues:**
+- FFmpeg not installed (install via: brew install ffmpeg)
+- Input file doesn't exist or is inaccessible
+- Output directory doesn't exist or lacks write permissions
+- Invalid filter string syntax
+- Filter not supported by your FFmpeg version`
+          }
+        ]
+      };
+    }
+  }
+);
+
+// Concatenate video segments tool
+server.tool(
+  "concatenate-segments",
+  "Join multiple videos into a single video file using FFmpeg concat filter",
+  {
+    inputs: z.array(z.string()).describe("Array of absolute paths to input video files"),
+    output: z.string().describe("Absolute path for the output video file"),
+    re_encode: z.boolean().optional().describe("Re-encode videos for compatibility (default: false)"),
+  },
+  async ({ inputs, output, re_encode = false }) => {
+    try {
+      // Validate all input files exist
+      for (const input of inputs) {
+        await fs.access(input);
+      }
+      
+      // Ensure output directory exists
+      await fs.mkdir(path.dirname(output), { recursive: true });
+      
+      if (re_encode) {
+        // Use concat filter for re-encoding (handles different formats/codecs)
+        const inputsString = inputs.map((input, index) => `[${index}:v] [${index}:a]`).join(' ');
+        const concatString = `${inputsString} concat=n=${inputs.length}:v=1:a=1 [v] [a]`;
+        const inputFlags = inputs.map(input => `-i "${input}"`).join(' ');
+        const ffmpegCommand = `ffmpeg ${inputFlags} -filter_complex "${concatString}" -map "[v]" -map "[a]" -c:v libx264 -c:a aac "${output}"`;
+        
+        const { stdout, stderr } = await execAsync(ffmpegCommand);
+      } else {
+        // Use concat demuxer for faster concatenation (requires same format/codec)
+        const tempListFile = path.join(path.dirname(output), 'concat_list.txt');
+        const listContent = inputs.map(input => `file '${input}'`).join('\n');
+        
+        await fs.writeFile(tempListFile, listContent);
+        
+        const ffmpegCommand = `ffmpeg -f concat -safe 0 -i "${tempListFile}" -c copy "${output}"`;
+        const { stdout, stderr } = await execAsync(ffmpegCommand);
+        
+        // Clean up temp file
+        await fs.unlink(tempListFile);
+      }
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: `🔗 **Video Concatenation Complete**
+
+**📁 Input Files:** ${inputs.length} videos
+${inputs.map((input, index) => `  ${index + 1}. ${path.basename(input)}`).join('\n')}
+
+**📁 Output:** ${output}
+**⚙️ Method:** ${re_encode ? 'Re-encode (compatible with different formats)' : 'Copy streams (faster, requires same format)'}
+
+✅ **Success!** ${inputs.length} videos have been joined into a single file.`
+          }
+        ]
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `❌ Error concatenating videos: ${error instanceof Error ? error.message : String(error)}
+
+**Common Issues:**
+- FFmpeg not installed (install via: brew install ffmpeg)
+- One or more input files don't exist or are inaccessible
+- Output directory doesn't exist or lacks write permissions
+- Videos have different formats/codecs (try re_encode: true)
+- Insufficient disk space for output file`
+          }
+        ]
+      };
+    }
+  }
+);
+
+// Separate audio and video tool
+server.tool(
+  "separate-audio-and-video",
+  "Create separate audio and video tracks from a video file, saving pure audio and pure video to new files",
+  {
+    input: z.string().describe("Absolute path to the input video file"),
+    video_output: z.string().describe("Absolute path for the pure video output file (no audio)"),
+    audio_output: z.string().describe("Absolute path for the pure audio output file"),
+    audio_format: z.enum(['mp3', 'wav', 'aac', 'flac']).optional().describe("Audio format (default: mp3)"),
+  },
+  async ({ input, video_output, audio_output, audio_format = 'mp3' }) => {
+    try {
+      // Validate input file exists
+      await fs.access(input);
+      
+      // Ensure output directories exist
+      await fs.mkdir(path.dirname(video_output), { recursive: true });
+      await fs.mkdir(path.dirname(audio_output), { recursive: true });
+      
+      // Extract video without audio
+      const videoCommand = `ffmpeg -i "${input}" -c:v copy -an "${video_output}"`;
+      
+      // Extract audio without video
+      const audioCodec = audio_format === 'mp3' ? 'mp3' : audio_format === 'wav' ? 'pcm_s16le' : audio_format === 'aac' ? 'aac' : 'flac';
+      const audioCommand = `ffmpeg -i "${input}" -vn -c:a ${audioCodec} "${audio_output}"`;
+      
+      // Execute both commands
+      const [videoResult, audioResult] = await Promise.all([
+        execAsync(videoCommand),
+        execAsync(audioCommand)
+      ]);
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: `🎬🎵 **Audio and Video Separation Complete**
+
+**📁 Input:** ${input}
+**📁 Video Output:** ${video_output} (no audio)
+**📁 Audio Output:** ${audio_output} (${audio_format.toUpperCase()})
+
+**⚙️ Processing:**
+- Video: Copied original video stream, removed audio
+- Audio: Extracted to ${audio_format.toUpperCase()} format using ${audioCodec} codec
+
+✅ **Success!** Audio and video tracks have been separated into individual files.
+
+**Use Cases:**
+- Create silent video for background use
+- Extract audio for podcasts or music
+- Separate tracks for individual editing
+- Convert audio to different formats`
+          }
+        ]
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `❌ Error separating audio and video: ${error instanceof Error ? error.message : String(error)}
+
+**Common Issues:**
+- FFmpeg not installed (install via: brew install ffmpeg)
+- Input file doesn't exist or is inaccessible
+- Output directories don't exist or lack write permissions
+- Input file has no audio stream (for audio extraction)
+- Input file has no video stream (for video extraction)`
+          }
+        ]
       };
     }
   }
