@@ -415,7 +415,10 @@ server.tool(
         "pixverse-v4.5",
       ])
       .describe("The video generation model to use"),
-    prompt: z.string().describe("Text prompt describing the video content"),
+    prompt: z.union([
+      z.string().describe("Single text prompt describing the video content"),
+      z.array(z.string()).describe("Array of text prompts for parallel video generation")
+    ]).describe("Text prompt(s) describing the video content"),
     image: z
       .string()
       .optional()
@@ -502,163 +505,190 @@ server.tool(
         throw new Error("REPLICATE_API_TOKEN environment variable is required");
       }
 
-      // Build input parameters based on model type
-      let input: any = {
-        prompt,
-        ...modelConfig.defaultParams,
+      // Handle both single prompt and array of prompts
+      const prompts = Array.isArray(prompt) ? prompt : [prompt];
+      const isMultiplePrompts = prompts.length > 1;
+
+      // Function to build input parameters for a given prompt
+      const buildInputParams = (currentPrompt: string, promptIndex: number) => {
+        let input: any = {
+          prompt: currentPrompt,
+          ...modelConfig.defaultParams,
+        };
+
+        // Add common parameters
+        if (duration) {
+          input.duration = Math.min(duration, modelConfig.maxDuration);
+        }
+        if (seed) {
+          // For multiple prompts, increment seed to ensure variety
+          input.seed = isMultiplePrompts ? seed + promptIndex : seed;
+        }
+        if (negative_prompt) {
+          input.negative_prompt = negative_prompt;
+        }
+        if (
+          image &&
+          (modelConfig.type === "image-to-video" || modelConfig.type === "both")
+        ) {
+          input.image = image;
+        }
+
+        // Model-specific parameter mapping
+        switch (model) {
+          case "veo-3":
+          case "veo-3-fast":
+            if (aspect_ratio) input.aspect_ratio = aspect_ratio;
+            if (enhance_prompt !== undefined)
+              input.enhance_prompt = enhance_prompt;
+            if (generate_audio !== undefined)
+              input.generate_audio = generate_audio;
+            break;
+
+          case "veo-2":
+            if (resolution && modelConfig.resolutions.includes(resolution))
+              input.resolution = resolution;
+            if (fps) input.fps = fps;
+            if (guidance_scale) input.guidance_scale = guidance_scale;
+            break;
+
+          case "hunyuan-video":
+            if (resolution === "720p") input.video_size = "720x1280";
+            else if (resolution === "1280p") input.video_size = "1280x720";
+            if (guidance_scale) input.guidance_scale = guidance_scale;
+            break;
+
+          case "mochi-1":
+            if (guidance_scale) input.guidance_scale = guidance_scale;
+            if (fps) input.fps = fps;
+            break;
+
+          case "ltx-video":
+            if (fps) input.fps = fps;
+            break;
+
+          case "pyramid-flow":
+            if (image) input.image = image;
+            break;
+
+          case "seedance-pro":
+          case "seedance-lite":
+            if (resolution && modelConfig.resolutions.includes(resolution))
+              input.resolution = resolution;
+            if (image) input.mode = "image-to-video";
+            break;
+
+          case "hailuo-2":
+          case "minimax-video":
+            if (resolution && modelConfig.resolutions.includes(resolution))
+              input.resolution = resolution;
+            if (image) input.image = image;
+            break;
+
+          case "minimax-director":
+            if (resolution && modelConfig.resolutions.includes(resolution))
+              input.resolution = resolution;
+            if (camera_movement) input.camera_movement = camera_movement;
+            if (image) input.image = image;
+            break;
+
+          case "kling-v2.1-master":
+          case "kling-v1.6-pro":
+            if (resolution && modelConfig.resolutions.includes(resolution))
+              input.resolution = resolution;
+            if (motion_intensity) input.motion_intensity = motion_intensity;
+            if (image) input.image = image;
+            break;
+
+          case "ray-flash-2":
+          case "ray-2":
+          case "luma-ray":
+            if (resolution && modelConfig.resolutions.includes(resolution))
+              input.resolution = resolution;
+            if (image) input.image = image;
+            break;
+
+          case "wan-t2v-720p":
+          case "wan-t2v-480p":
+            if (fps) input.fps = fps;
+            if (guidance_scale) input.guide_scale = guidance_scale;
+            break;
+
+          case "wan-i2v-720p":
+          case "wan-i2v-480p":
+            if (fps) input.fps = fps;
+            if (guidance_scale) input.guide_scale = guidance_scale;
+            if (image) input.image = image;
+            break;
+
+          case "pixverse-v4.5":
+            if (resolution && modelConfig.resolutions.includes(resolution))
+              input.resolution = resolution;
+            if (image) input.image = image;
+            break;
+
+          default:
+            // Generic parameter mapping for other models
+            if (resolution && modelConfig.resolutions.includes(resolution))
+              input.resolution = resolution;
+            if (fps) input.fps = fps;
+            if (guidance_scale) input.guidance_scale = guidance_scale;
+            if (image) input.image = image;
+        }
+
+        return input;
       };
 
-      // Add common parameters
-      if (duration) {
-        input.duration = Math.min(duration, modelConfig.maxDuration);
-      }
-      if (seed) {
-        input.seed = seed;
-      }
-      if (negative_prompt) {
-        input.negative_prompt = negative_prompt;
-      }
-      if (
-        image &&
-        (modelConfig.type === "image-to-video" || modelConfig.type === "both")
-      ) {
-        input.image = image;
-      }
+      // Function to create a prediction for a single prompt
+      const createPrediction = async (currentPrompt: string, promptIndex: number) => {
+        const input = buildInputParams(currentPrompt, promptIndex);
+        
+        const response = await fetch("https://api.replicate.com/v1/predictions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            version: modelConfig.version,
+            input,
+          }),
+        });
 
-      // Model-specific parameter mapping
-      switch (model) {
-        case "veo-3":
-        case "veo-3-fast":
-          if (aspect_ratio) input.aspect_ratio = aspect_ratio;
-          if (enhance_prompt !== undefined)
-            input.enhance_prompt = enhance_prompt;
-          if (generate_audio !== undefined)
-            input.generate_audio = generate_audio;
-          break;
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(
+            `Replicate API error for prompt ${promptIndex + 1}: ${error.detail || response.statusText}`
+          );
+        }
 
-        case "veo-2":
-          if (resolution && modelConfig.resolutions.includes(resolution))
-            input.resolution = resolution;
-          if (fps) input.fps = fps;
-          if (guidance_scale) input.guidance_scale = guidance_scale;
-          break;
+        const prediction = await response.json();
+        return { prediction, prompt: currentPrompt, promptIndex, input };
+      };
 
-        case "hunyuan-video":
-          if (resolution === "720p") input.video_size = "720x1280";
-          else if (resolution === "1280p") input.video_size = "1280x720";
-          if (guidance_scale) input.guidance_scale = guidance_scale;
-          break;
+      // Create predictions for all prompts in parallel
+      const predictionPromises = prompts.map((currentPrompt, index) => 
+        createPrediction(currentPrompt, index)
+      );
 
-        case "mochi-1":
-          if (guidance_scale) input.guidance_scale = guidance_scale;
-          if (fps) input.fps = fps;
-          break;
+      const predictionResults = await Promise.all(predictionPromises);
 
-        case "ltx-video":
-          if (fps) input.fps = fps;
-          break;
-
-        case "pyramid-flow":
-          if (image) input.image = image;
-          break;
-
-        case "seedance-pro":
-        case "seedance-lite":
-          if (resolution && modelConfig.resolutions.includes(resolution))
-            input.resolution = resolution;
-          if (image) input.mode = "image-to-video";
-          break;
-
-        case "hailuo-2":
-        case "minimax-video":
-          if (resolution && modelConfig.resolutions.includes(resolution))
-            input.resolution = resolution;
-          if (image) input.image = image;
-          break;
-
-        case "minimax-director":
-          if (resolution && modelConfig.resolutions.includes(resolution))
-            input.resolution = resolution;
-          if (camera_movement) input.camera_movement = camera_movement;
-          if (image) input.image = image;
-          break;
-
-        case "kling-v2.1-master":
-        case "kling-v1.6-pro":
-          if (resolution && modelConfig.resolutions.includes(resolution))
-            input.resolution = resolution;
-          if (motion_intensity) input.motion_intensity = motion_intensity;
-          if (image) input.image = image;
-          break;
-
-        case "ray-flash-2":
-        case "ray-2":
-        case "luma-ray":
-          if (resolution && modelConfig.resolutions.includes(resolution))
-            input.resolution = resolution;
-          if (image) input.image = image;
-          break;
-
-        case "wan-t2v-720p":
-        case "wan-t2v-480p":
-          if (fps) input.fps = fps;
-          if (guidance_scale) input.guide_scale = guidance_scale;
-          break;
-
-        case "wan-i2v-720p":
-        case "wan-i2v-480p":
-          if (fps) input.fps = fps;
-          if (guidance_scale) input.guide_scale = guidance_scale;
-          if (image) input.image = image;
-          break;
-
-        case "pixverse-v4.5":
-          if (resolution && modelConfig.resolutions.includes(resolution))
-            input.resolution = resolution;
-          if (image) input.image = image;
-          break;
-
-        default:
-          // Generic parameter mapping for other models
-          if (resolution && modelConfig.resolutions.includes(resolution))
-            input.resolution = resolution;
-          if (fps) input.fps = fps;
-          if (guidance_scale) input.guidance_scale = guidance_scale;
-          if (image) input.image = image;
-      }
-
-      const response = await fetch("https://api.replicate.com/v1/predictions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          version: modelConfig.version,
-          input,
-        }),
+      // Wait for all predictions to complete and save videos in parallel
+      const videoPromises = predictionResults.map(async ({ prediction, prompt: currentPrompt, promptIndex, input }) => {
+        if (prediction.id) {
+          const savedFilePath = await waitAndSaveVideo(
+            prediction.id,
+            apiToken,
+            save_path || "videos",
+            model,
+            currentPrompt
+          );
+          return { savedFilePath, prompt: currentPrompt, promptIndex, prediction, input };
+        }
+        return { savedFilePath: null, prompt: currentPrompt, promptIndex, prediction, input };
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(
-          `Replicate API error: ${error.detail || response.statusText}`
-        );
-      }
-
-      const prediction = await response.json();
-
-      // Wait for the prediction to complete and save the video
-      let savedFilePath = null;
-      if (prediction.id) {
-        savedFilePath = await waitAndSaveVideo(
-          prediction.id,
-          apiToken,
-          save_path || "videos",
-          model,
-          prompt
-        );
-      }
+      const videoResults = await Promise.all(videoPromises);
 
       // Build response message
       const features = [];
@@ -669,65 +699,82 @@ server.tool(
         features.push("Image-to-Video");
       else features.push("Text-to-Video");
 
-      const paramDetails = [];
-      paramDetails.push(`Prompt: ${prompt}`);
-      paramDetails.push(
-        `Duration: ${input.duration || (modelConfig.defaultParams as any).duration || 5}s`
-      );
-      paramDetails.push(`Max Duration: ${modelConfig.maxDuration}s`);
-      paramDetails.push(`Resolutions: ${modelConfig.resolutions.join(", ")}`);
-      if (input.resolution)
-        paramDetails.push(`Selected Resolution: ${input.resolution}`);
-      if (input.fps) paramDetails.push(`FPS: ${input.fps}`);
-      if (input.aspect_ratio)
-        paramDetails.push(`Aspect Ratio: ${input.aspect_ratio}`);
-      if (input.generate_audio)
-        paramDetails.push(`Audio Generation: ${input.generate_audio}`);
-      if (input.camera_movement)
-        paramDetails.push(`Camera Movement: ${input.camera_movement}`);
-      if (input.motion_intensity)
-        paramDetails.push(`Motion Intensity: ${input.motion_intensity}`);
-      if (image) paramDetails.push(`Input Image: ${image}`);
-      if (negative_prompt)
-        paramDetails.push(`Negative Prompt: ${negative_prompt}`);
-      if (input.seed) paramDetails.push(`Seed: ${input.seed}`);
+      const allSuccessful = videoResults.every(result => result.savedFilePath);
+      const completedCount = videoResults.filter(result => result.savedFilePath).length;
+
+      // Build individual video details
+      const videoDetails = videoResults.map(({ savedFilePath, prompt: currentPrompt, promptIndex, prediction, input }) => {
+        const paramDetails = [];
+        paramDetails.push(`Prompt: ${currentPrompt}`);
+        paramDetails.push(
+          `Duration: ${input.duration || (modelConfig.defaultParams as any).duration || 5}s`
+        );
+        if (input.resolution)
+          paramDetails.push(`Resolution: ${input.resolution}`);
+        if (input.fps) paramDetails.push(`FPS: ${input.fps}`);
+        if (input.aspect_ratio)
+          paramDetails.push(`Aspect Ratio: ${input.aspect_ratio}`);
+        if (input.generate_audio)
+          paramDetails.push(`Audio Generation: ${input.generate_audio}`);
+        if (input.camera_movement)
+          paramDetails.push(`Camera Movement: ${input.camera_movement}`);
+        if (input.motion_intensity)
+          paramDetails.push(`Motion Intensity: ${input.motion_intensity}`);
+        if (image) paramDetails.push(`Input Image: ${image}`);
+        if (negative_prompt)
+          paramDetails.push(`Negative Prompt: ${negative_prompt}`);
+        if (input.seed) paramDetails.push(`Seed: ${input.seed}`);
+
+        return {
+          promptIndex: promptIndex + 1,
+          prompt: currentPrompt,
+          predictionId: prediction.id,
+          status: prediction.status,
+          savedFilePath,
+          webUrl: prediction.urls?.web,
+          paramDetails
+        };
+      });
 
       return {
         content: [
           {
             type: "text",
-            text: `🎬 Video Generation ${
-              savedFilePath
+            text: `🎬 ${isMultiplePrompts ? 'Parallel ' : ''}Video Generation ${
+              allSuccessful
                 ? "Completed Successfully!"
+                : completedCount > 0
+                ? `Partially Complete! (${completedCount}/${prompts.length} videos saved)`
                 : "Started Successfully!"
             }
 
 📋 **Model Details:**
 - Model: ${model} (${modelConfig.version})
 - Features: ${features.join(", ")}
-- Prediction ID: ${prediction.id}
-- Status: ${prediction.status}
+- ${isMultiplePrompts ? `Videos Generated: ${prompts.length}` : 'Single Video'}
+- Max Duration: ${modelConfig.maxDuration}s
+- Resolutions: ${modelConfig.resolutions.join(", ")}
 
-${
-  savedFilePath
-    ? `💾 **Saved Video:**
-- File Path: ${savedFilePath}
-- Directory: ${path.dirname(savedFilePath)}
-- Filename: ${path.basename(savedFilePath)}
+${videoDetails.map(detail => `
+📹 **Video ${detail.promptIndex}:**
+- Prompt: "${detail.prompt}"
+- Prediction ID: ${detail.predictionId}
+- Status: ${detail.status}
+${detail.savedFilePath ? `- ✅ Saved: ${path.basename(detail.savedFilePath)}` : detail.webUrl ? `- 🔗 Monitor: ${detail.webUrl}` : '- ❌ Failed'}
 
-✅ **Success!**
-Your video has been generated and saved successfully!`
-    : `🔗 **Monitor Progress:**
-${prediction.urls.web}
+⚙️ **Parameters:**
+${detail.paramDetails.map(p => `  - ${p}`).join('\n')}
+`).join('\n')}
 
-📥 **Next Steps:**
-1. Click the web URL above to monitor progress
-2. Download the generated video once complete
-3. Processing time varies by model complexity and queue load`
+${allSuccessful ? 
+  `✅ **All ${prompts.length} video${prompts.length > 1 ? 's' : ''} generated successfully!**` : 
+  completedCount > 0 ? 
+    `⚠️ **${completedCount} of ${prompts.length} videos completed successfully.**` :
+    `📥 **Monitor Progress:**
+${videoDetails.map(detail => detail.webUrl ? `- Video ${detail.promptIndex}: ${detail.webUrl}` : '').filter(Boolean).join('\n')}
+
+Processing time varies by model complexity and queue load.`
 }
-
-⚙️ **Generation Parameters:**
-${paramDetails.map((p) => `- ${p}`).join("\n")}
 
 ${(modelConfig as any).hasAudio ? "🎵 This model includes audio generation!" : ""}
 ${
@@ -1064,13 +1111,16 @@ server.tool(
 // Concatenate video segments tool
 server.tool(
   "concatenate-segments",
-  "Join multiple videos into a single video file using FFmpeg concat filter",
+  "Join multiple videos and/or images into a single video file using FFmpeg concat filter",
   {
-    inputs: z.array(z.string()).describe("Array of absolute paths to input video files"),
+    inputs: z.array(z.string()).describe("Array of absolute paths to input video files and/or image files"),
     output: z.string().describe("Absolute path for the output video file"),
-    re_encode: z.boolean().optional().describe("Re-encode videos for compatibility (default: false)"),
+    image_durations: z.array(z.number()).optional().describe("Array of durations in seconds for each image input (default: 2 seconds each)"),
+    re_encode: z.boolean().optional().describe("Re-encode videos for compatibility (default: true for mixed inputs)"),
+    fps: z.number().optional().describe("Frame rate for the output video (default: 25)"),
+    resolution: z.string().optional().describe("Output resolution in WIDTHxHEIGHT format (default: auto)"),
   },
-  async ({ inputs, output, re_encode = false }) => {
+  async ({ inputs, output, image_durations, re_encode, fps = 25, resolution }) => {
     try {
       // Validate all input files exist
       for (const input of inputs) {
@@ -1080,41 +1130,123 @@ server.tool(
       // Ensure output directory exists
       await fs.mkdir(path.dirname(output), { recursive: true });
       
-      if (re_encode) {
-        // Use concat filter for re-encoding (handles different formats/codecs)
-        const inputsString = inputs.map((input, index) => `[${index}:v] [${index}:a]`).join(' ');
-        const concatString = `${inputsString} concat=n=${inputs.length}:v=1:a=1 [v] [a]`;
-        const inputFlags = inputs.map(input => `-i "${input}"`).join(' ');
-        const ffmpegCommand = `ffmpeg ${inputFlags} -filter_complex "${concatString}" -map "[v]" -map "[a]" -c:v libx264 -c:a aac "${output}"`;
+      // Detect file types
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp'];
+      const videoExtensions = ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm'];
+      
+      const inputTypes = inputs.map(input => {
+        const ext = path.extname(input).toLowerCase();
+        if (imageExtensions.includes(ext)) return 'image';
+        if (videoExtensions.includes(ext)) return 'video';
+        return 'unknown';
+      });
+      
+      const hasImages = inputTypes.includes('image');
+      const hasVideos = inputTypes.includes('video');
+      const hasMixed = hasImages && hasVideos;
+      
+      // Set default re_encode based on mixed inputs
+      if (re_encode === undefined) {
+        re_encode = hasMixed || hasImages;
+      }
+      
+      // Set default image durations
+      if (!image_durations) {
+        const imageCount = inputTypes.filter(type => type === 'image').length;
+        image_durations = new Array(imageCount).fill(2);
+      }
+      
+      let imageDurationIndex = 0;
+      
+      if (re_encode || hasMixed) {
+        // Use filter_complex for mixed inputs or re-encoding
+        const inputFlags = [];
+        const filterParts = [];
         
-        const { stdout, stderr } = await execAsync(ffmpegCommand);
+        // Process each input
+        for (let i = 0; i < inputs.length; i++) {
+          const input = inputs[i];
+          const type = inputTypes[i];
+          
+          if (type === 'image') {
+            const duration = image_durations[imageDurationIndex] || 2;
+            imageDurationIndex++;
+            inputFlags.push(`-loop 1 -t ${duration} -i "${input}"`);
+            
+            // Scale and format image
+            if (resolution) {
+              filterParts.push(`[${i}:v]scale=${resolution},setsar=1,fps=${fps},format=yuv420p[v${i}]`);
+            } else {
+              filterParts.push(`[${i}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:black,setsar=1,fps=${fps},format=yuv420p[v${i}]`);
+            }
+          } else if (type === 'video') {
+            inputFlags.push(`-i "${input}"`);
+            
+            // Scale and format video
+            if (resolution) {
+              filterParts.push(`[${i}:v]scale=${resolution},setsar=1,fps=${fps},format=yuv420p[v${i}]`);
+            } else {
+              filterParts.push(`[${i}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:black,setsar=1,fps=${fps},format=yuv420p[v${i}]`);
+            }
+            
+            // Handle audio streams
+            filterParts.push(`[${i}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[a${i}]`);
+          }
+        }
+        
+        // Build concatenation filter
+        const videoInputs = inputs.map((_, i) => `[v${i}]`).join('');
+        const audioInputs = inputs.map((_, i) => inputTypes[i] === 'video' ? `[a${i}]` : '').filter(Boolean).join('');
+        
+        if (audioInputs) {
+          filterParts.push(`${videoInputs}concat=n=${inputs.length}:v=1:a=0[outv]`);
+          filterParts.push(`${audioInputs}concat=n=${inputTypes.filter(t => t === 'video').length}:v=0:a=1[outa]`);
+        } else {
+          filterParts.push(`${videoInputs}concat=n=${inputs.length}:v=1:a=0[outv]`);
+        }
+        
+        const filterComplex = filterParts.join(';');
+        const ffmpegCommand = `ffmpeg ${inputFlags.join(' ')} -filter_complex "${filterComplex}" -map "[outv]"${audioInputs ? ' -map "[outa]"' : ''} -c:v libx264 -c:a aac -r ${fps} "${output}"`;
+        
+        await execAsync(ffmpegCommand);
       } else {
-        // Use concat demuxer for faster concatenation (requires same format/codec)
+        // Use concat demuxer for faster concatenation (videos only, same format)
         const tempListFile = path.join(path.dirname(output), 'concat_list.txt');
         const listContent = inputs.map(input => `file '${input}'`).join('\n');
         
         await fs.writeFile(tempListFile, listContent);
         
         const ffmpegCommand = `ffmpeg -f concat -safe 0 -i "${tempListFile}" -c copy "${output}"`;
-        const { stdout, stderr } = await execAsync(ffmpegCommand);
+        await execAsync(ffmpegCommand);
         
         // Clean up temp file
         await fs.unlink(tempListFile);
       }
       
+      // Build type summary
+      const typeSummary = [];
+      if (hasImages) typeSummary.push(`${inputTypes.filter(t => t === 'image').length} images`);
+      if (hasVideos) typeSummary.push(`${inputTypes.filter(t => t === 'video').length} videos`);
+      
       return {
         content: [
           {
             type: "text",
-            text: `🔗 **Video Concatenation Complete**
+            text: `🔗 **Media Concatenation Complete**
 
-**📁 Input Files:** ${inputs.length} videos
-${inputs.map((input, index) => `  ${index + 1}. ${path.basename(input)}`).join('\n')}
+**📁 Input Files:** ${inputs.length} files (${typeSummary.join(', ')})
+${inputs.map((input, index) => `  ${index + 1}. ${path.basename(input)} (${inputTypes[index]})`).join('\n')}
 
 **📁 Output:** ${output}
-**⚙️ Method:** ${re_encode ? 'Re-encode (compatible with different formats)' : 'Copy streams (faster, requires same format)'}
+**⚙️ Method:** ${re_encode ? 'Re-encode with filter_complex (compatible with mixed formats)' : 'Copy streams (faster, videos only)'}
+${hasImages ? `**🖼️ Image Settings:**\n- Default Duration: ${image_durations[0]}s per image\n- Frame Rate: ${fps} fps` : ''}
+${resolution ? `**📏 Resolution:** ${resolution}` : ''}
 
-✅ **Success!** ${inputs.length} videos have been joined into a single file.`
+✅ **Success!** ${inputs.length} files have been joined into a single video.
+
+**Supported Formats:**
+- Images: JPG, PNG, GIF, BMP, TIFF, WebP
+- Videos: MP4, AVI, MOV, MKV, WMV, FLV, WebM`
           }
         ]
       };
@@ -1123,14 +1255,160 @@ ${inputs.map((input, index) => `  ${index + 1}. ${path.basename(input)}`).join('
         content: [
           {
             type: "text",
-            text: `❌ Error concatenating videos: ${error instanceof Error ? error.message : String(error)}
+            text: `❌ Error concatenating media: ${error instanceof Error ? error.message : String(error)}
 
 **Common Issues:**
 - FFmpeg not installed (install via: brew install ffmpeg)
 - One or more input files don't exist or are inaccessible
 - Output directory doesn't exist or lacks write permissions
 - Videos have different formats/codecs (try re_encode: true)
-- Insufficient disk space for output file`
+- Insufficient disk space for output file
+- Unsupported file formats`
+          }
+        ]
+      };
+    }
+  }
+);
+
+// Images to video tool
+server.tool(
+  "images-to-video",
+  "Create a video from a sequence of images with customizable durations and optional audio",
+  {
+    images: z.array(z.string()).describe("Array of absolute paths to image files"),
+    durations: z.array(z.number()).optional().describe("Array of durations in seconds for each image (default: 2 seconds each)"),
+    output: z.string().describe("Absolute path for the output video file"),
+    fps: z.number().optional().describe("Frame rate of the output video (default: 25)"),
+    resolution: z.string().optional().describe("Output resolution in WIDTHxHEIGHT format (default: auto from first image)"),
+    audio_input: z.string().optional().describe("Optional audio file to add to the video"),
+    transition_duration: z.number().optional().describe("Duration of crossfade transition between images in seconds (default: 0)"),
+    loop_audio: z.boolean().optional().describe("Loop audio to match video duration (default: false)"),
+  },
+  async ({ images, durations, output, fps = 25, resolution, audio_input, transition_duration = 0, loop_audio = false }) => {
+    try {
+      // Validate all image files exist
+      for (const image of images) {
+        await fs.access(image);
+      }
+      
+      if (audio_input) {
+        await fs.access(audio_input);
+      }
+      
+      // Ensure output directory exists
+      await fs.mkdir(path.dirname(output), { recursive: true });
+      
+      // Set default durations if not provided
+      if (!durations) {
+        durations = new Array(images.length).fill(2);
+      } else if (durations.length !== images.length) {
+        throw new Error("Number of durations must match number of images");
+      }
+      
+      // Calculate total video duration
+      const totalDuration = durations.reduce((sum, duration) => sum + duration, 0);
+      
+      // Build filter complex for image sequence
+      let filterParts = [];
+      let inputFlags = [];
+      
+      // Add image inputs
+      for (let i = 0; i < images.length; i++) {
+        inputFlags.push(`-loop 1 -t ${durations[i]} -i "${images[i]}"`);
+      }
+      
+      // Add audio input if provided
+      if (audio_input) {
+        inputFlags.push(`-i "${audio_input}"`);
+      }
+      
+      // Build scale and format filters for each image
+      for (let i = 0; i < images.length; i++) {
+        if (resolution) {
+          filterParts.push(`[${i}:v]scale=${resolution},setsar=1,fps=${fps},format=yuv420p[v${i}]`);
+        } else {
+          filterParts.push(`[${i}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:black,setsar=1,fps=${fps},format=yuv420p[v${i}]`);
+        }
+      }
+      
+      // Build concatenation filter
+      const videoInputs = images.map((_, i) => `[v${i}]`).join('');
+      if (transition_duration > 0) {
+        // Add crossfade transitions
+        let transitionFilter = videoInputs;
+        for (let i = 0; i < images.length - 1; i++) {
+          const offset = durations.slice(0, i + 1).reduce((sum, dur) => sum + dur, 0) - transition_duration;
+          transitionFilter += `xfade=transition=fade:duration=${transition_duration}:offset=${offset}`;
+          if (i < images.length - 2) transitionFilter += ',';
+        }
+        filterParts.push(`${transitionFilter}[video]`);
+      } else {
+        filterParts.push(`${videoInputs}concat=n=${images.length}:v=1:a=0[video]`);
+      }
+      
+      // Build complete filter complex
+      const filterComplex = filterParts.join(';');
+      
+      // Build FFmpeg command
+      let ffmpegCommand = `ffmpeg ${inputFlags.join(' ')} -filter_complex "${filterComplex}" -map "[video]"`;
+      
+      // Add audio handling
+      if (audio_input) {
+        const audioIndex = images.length;
+        if (loop_audio) {
+          ffmpegCommand += ` -filter_complex "${filterComplex};[${audioIndex}:a]aloop=loop=-1:size=2e+09[audio]" -map "[audio]" -t ${totalDuration}`;
+        } else {
+          ffmpegCommand += ` -map ${audioIndex}:a -t ${totalDuration}`;
+        }
+        ffmpegCommand += ` -c:a aac`;
+      }
+      
+      ffmpegCommand += ` -c:v libx264 -pix_fmt yuv420p -r ${fps} "${output}"`;
+      
+      await execAsync(ffmpegCommand);
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: `🖼️➡️🎬 **Images to Video Conversion Complete**
+
+**📁 Input Images:** ${images.length} images
+${images.map((img, i) => `  ${i + 1}. ${path.basename(img)} (${durations![i]}s)`).join('\n')}
+
+**📁 Output:** ${output}
+**⚙️ Settings:**
+- Total Duration: ${totalDuration}s
+- Frame Rate: ${fps} fps
+- Resolution: ${resolution || 'Auto (1920x1080 with padding)'}
+- Transition: ${transition_duration > 0 ? `${transition_duration}s crossfade` : 'None'}
+${audio_input ? `- Audio: ${path.basename(audio_input)} ${loop_audio ? '(looped)' : ''}` : '- Audio: None'}
+
+✅ **Success!** ${images.length} images have been converted to video.
+
+**Use Cases:**
+- Create slideshows from photo collections
+- Generate video content from still images
+- Build animated presentations
+- Convert image sequences to video format`
+          }
+        ]
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `❌ Error creating video from images: ${error instanceof Error ? error.message : String(error)}
+
+**Common Issues:**
+- FFmpeg not installed (install via: brew install ffmpeg)
+- One or more image files don't exist or are inaccessible
+- Output directory doesn't exist or lacks write permissions
+- Audio file doesn't exist (if specified)
+- Invalid image formats or corrupted files
+- Insufficient disk space for output video`
           }
         ]
       };
@@ -1165,7 +1443,7 @@ server.tool(
       const audioCommand = `ffmpeg -i "${input}" -vn -c:a ${audioCodec} "${audio_output}"`;
       
       // Execute both commands
-      const [videoResult, audioResult] = await Promise.all([
+      await Promise.all([
         execAsync(videoCommand),
         execAsync(audioCommand)
       ]);
