@@ -2,8 +2,8 @@
 url: https://replicate.com/collections/text-to-video
 title: AI Video Generator - Text to Video Models
 description: Generate and edit videos using AI with text prompts. Turn your text to video with AI models like MiniMax Hailuo, Genmo's Mochi-1, Haiper 2.0, Pyramid Flow and LTX Video from Lightricks.
-access_date: 2025-07-18T09:34:32.000Z
-current_date: 2025-07-18T09:34:32.895Z
+access_date: 2025-07-18T11:21:10.000Z
+current_date: 2025-07-18T11:21:10.346Z
 ---
 
 Collections
@@ -14,10 +14,10 @@ These models can generate and edit videos from text prompts and images. They use
 
 Key capabilities:
 
-* **Text-to-video generation** \- Convert text prompts into video clips and animations. Useful for quickly prototyping video concepts.
-* **Image-to-video generation** \- Animate still images into video.
-* **Inpainting for infinite zoom** \- Use image inpainting to extrapolate video frames and create infinite zoom effects.
-* **Stylization** \- Apply artistic filters like cartoonification to give videos a unique look and feel.
+- **Text-to-video generation** \- Convert text prompts into video clips and animations. Useful for quickly prototyping video concepts.
+- **Image-to-video generation** \- Animate still images into video.
+- **Inpainting for infinite zoom** \- Use image inpainting to extrapolate video frames and create infinite zoom effects.
+- **Stylization** \- Apply artistic filters like cartoonification to give videos a unique look and feel.
 
 ## State of the art: google/veo-3
 
@@ -33,412 +33,412 @@ Generative video is a rapidly advancing field. Check out the arena and leaderboa
 
 Featured models
 
-#### bytedance / seedance-1-pro 
+#### bytedance / seedance-1-pro
 
- A pro version of Seedance that offers text-to-video and image-to-video support for 5s or 10s videos, at 480p and 1080p resolution
+A pro version of Seedance that offers text-to-video and image-to-video support for 5s or 10s videos, at 480p and 1080p resolution
 
- Updated 1 day, 16 hours ago
+Updated 1 day, 18 hours ago
 
- 88.1K runs
+88.6K runs
 
-#### google / veo-3-fast 
+#### google / veo-3-fast
 
- A faster and cheaper version of Google’s Veo 3 video model, with audio
+A faster and cheaper version of Google’s Veo 3 video model, with audio
 
- Updated 1 week, 1 day ago
+Updated 1 week, 1 day ago
 
- 5.4K runs
+5.4K runs
 
-#### minimax / hailuo-02 
+#### minimax / hailuo-02
 
- Hailuo 2 is a text-to-video and image-to-video model that can make 6s or 10s videos at 720p (standard) or 1080p (pro). It excels at real world physics.
+Hailuo 2 is a text-to-video and image-to-video model that can make 6s or 10s videos at 720p (standard) or 1080p (pro). It excels at real world physics.
 
- Updated 1 week, 3 days ago
+Updated 1 week, 3 days ago
 
- 10.2K runs
+10.3K runs
 
 Recommended models
 
-#### fofr / not-real 
+#### fofr / not-real
 
- Make a very realistic looking real-world AI video
+Make a very realistic looking real-world AI video
 
- 1K runs
+1K runs
 
-#### bytedance / seedance-1-lite 
+#### bytedance / seedance-1-lite
 
- A video generation model that offers text-to-video and image-to-video support for 5s or 10s videos, at 480p and 720p resolution
+A video generation model that offers text-to-video and image-to-video support for 5s or 10s videos, at 480p and 720p resolution
 
- 113.2K runs
+113.8K runs
 
-#### pixverse / pixverse-v4.5 
+#### pixverse / pixverse-v4.5
 
- Quickly make 5s or 8s videos at 540p, 720p or 1080p. It has enhanced motion, prompt coherence and handles complex actions well.
+Quickly make 5s or 8s videos at 540p, 720p or 1080p. It has enhanced motion, prompt coherence and handles complex actions well.
 
- 89.2K runs
+89.3K runs
 
-#### pixverse / pixverse-v4 
+#### pixverse / pixverse-v4
 
- Quickly generate smooth 5s or 8s videos at 540p, 720p or 1080p
+Quickly generate smooth 5s or 8s videos at 540p, 720p or 1080p
 
- 22K runs
+22K runs
 
-#### kwaivgi / kling-v2.1-master 
+#### kwaivgi / kling-v2.1-master
 
- A premium version of Kling v2.1 with superb dynamics and prompt adherence. Generate 1080p 5s and 10s videos from text or an image
+A premium version of Kling v2.1 with superb dynamics and prompt adherence. Generate 1080p 5s and 10s videos from text or an image
 
- Updated 4 weeks ago
+Updated 4 weeks ago
 
- 15.4K runs
+15.5K runs
 
-#### kwaivgi / kling-v2.1 
+#### kwaivgi / kling-v2.1
 
- Use Kling v2.1 to generate 5s and 10s videos in 720p and 1080p resolution from a starting image (image-to-video)
+Use Kling v2.1 to generate 5s and 10s videos in 720p and 1080p resolution from a starting image (image-to-video)
 
- 135.1K runs
+135.9K runs
 
-#### minimax / video-01 
+#### minimax / video-01
 
- Generate 6s videos with prompts or images. (Also known as Hailuo). Use a subject reference to make a video with a character and the S2V-01 model.
+Generate 6s videos with prompts or images. (Also known as Hailuo). Use a subject reference to make a video with a character and the S2V-01 model.
 
- 542.2K runs
+542.2K runs
 
-#### minimax / video-01-live 
+#### minimax / video-01-live
 
- An image-to-video (I2V) model specifically trained for Live2D and general animation use cases
+An image-to-video (I2V) model specifically trained for Live2D and general animation use cases
 
- 135.4K runs
+135.5K runs
 
-#### minimax / video-01-director 
+#### minimax / video-01-director
 
- Generate videos with specific camera movements
+Generate videos with specific camera movements
 
- 45.5K runs
+45.5K runs
 
-#### google / veo-3 
+#### google / veo-3
 
- Sound on: Google’s flagship Veo 3 text to video model, with audio
+Sound on: Google’s flagship Veo 3 text to video model, with audio
 
- Updated 1 month ago
+Updated 1 month ago
 
- 119.3K runs
+119.4K runs
 
-#### kwaivgi / kling-v1.6-pro 
+#### kwaivgi / kling-v1.6-pro
 
- Generate 5s and 10s videos in 1080p resolution
+Generate 5s and 10s videos in 1080p resolution
 
- Updated 1 month, 1 week ago
+Updated 1 month, 1 week ago
 
- 564.3K runs
+564.8K runs
 
-#### kwaivgi / kling-v1.6-standard 
+#### kwaivgi / kling-v1.6-standard
 
- Generate 5s and 10s videos in 720p resolution at 30fps
+Generate 5s and 10s videos in 720p resolution at 30fps
 
- 971.9K runs
+972.4K runs
 
-#### kwaivgi / kling-v2.0 
+#### kwaivgi / kling-v2.0
 
- Generate 5s and 10s videos in 720p resolution
+Generate 5s and 10s videos in 720p resolution
 
- 50K runs
+50.1K runs
 
-#### leonardoai / motion-2.0 
+#### leonardoai / motion-2.0
 
- Create 5s 480p videos from a text prompt
+Create 5s 480p videos from a text prompt
 
- Updated 1 month, 2 weeks ago
+Updated 1 month, 2 weeks ago
 
- 5.3K runs
+5.3K runs
 
-#### luma / ray-flash-2-720p 
+#### luma / ray-flash-2-720p
 
- Generate 5s and 9s 720p videos, faster and cheaper than Ray 2
+Generate 5s and 9s 720p videos, faster and cheaper than Ray 2
 
- Updated 1 month, 3 weeks ago
+Updated 1 month, 3 weeks ago
 
- 23.2K runs
+23.3K runs
 
-#### luma / ray-2-720p 
+#### luma / ray-2-720p
 
- Generate 5s and 9s 720p videos
+Generate 5s and 9s 720p videos
 
- 23.1K runs
+23.1K runs
 
-#### luma / ray-flash-2-540p 
+#### luma / ray-flash-2-540p
 
- Generate 5s and 9s 540p videos, faster and cheaper than Ray 2
+Generate 5s and 9s 540p videos, faster and cheaper than Ray 2
 
- 46.8K runs
+46.8K runs
 
-#### luma / ray-2-540p 
+#### luma / ray-2-540p
 
- Generate 5s and 9s 540p videos
+Generate 5s and 9s 540p videos
 
- 9.5K runs
+9.5K runs
 
-#### luma / ray 
+#### luma / ray
 
- Fast, high quality text-to-video and image-to-video (Also known as Dream Machine)
+Fast, high quality text-to-video and image-to-video (Also known as Dream Machine)
 
- 46K runs
+46K runs
 
-#### google / veo-2 
+#### google / veo-2
 
- State of the art video generation model. Veo 2 can faithfully follow simple and complex instructions, and convincingly simulates real-world physics as well as a wide range of visual styles.
+State of the art video generation model. Veo 2 can faithfully follow simple and complex instructions, and convincingly simulates real-world physics as well as a wide range of visual styles.
 
- 90.7K runs
+90.7K runs
 
-#### wavespeedai / wan-2.1-t2v-480p 
+#### wavespeedai / wan-2.1-t2v-480p
 
- Accelerated inference for Wan 2.1 14B text to video, a comprehensive and open suite of video foundation models that pushes the boundaries of video generation.
+Accelerated inference for Wan 2.1 14B text to video, a comprehensive and open suite of video foundation models that pushes the boundaries of video generation.
 
- Updated 3 months, 2 weeks ago
+Updated 3 months, 2 weeks ago
 
- 166.8K runs
+166.8K runs
 
-#### wavespeedai / wan-2.1-t2v-720p 
+#### wavespeedai / wan-2.1-t2v-720p
 
- Accelerated inference for Wan 2.1 14B text to video with high resolution, a comprehensive and open suite of video foundation models that pushes the boundaries of video generation.
+Accelerated inference for Wan 2.1 14B text to video with high resolution, a comprehensive and open suite of video foundation models that pushes the boundaries of video generation.
 
- 33.4K runs
+33.4K runs
 
-#### wavespeedai / wan-2.1-i2v-480p 
+#### wavespeedai / wan-2.1-i2v-480p
 
- Accelerated inference for Wan 2.1 14B image to video, a comprehensive and open suite of video foundation models that pushes the boundaries of video generation.
+Accelerated inference for Wan 2.1 14B image to video, a comprehensive and open suite of video foundation models that pushes the boundaries of video generation.
 
- 368K runs
+368.1K runs
 
-#### wavespeedai / wan-2.1-i2v-720p 
+#### wavespeedai / wan-2.1-i2v-720p
 
- Accelerated inference for Wan 2.1 14B image to video with high resolution, a comprehensive and open suite of video foundation models that pushes the boundaries of video generation.
+Accelerated inference for Wan 2.1 14B image to video with high resolution, a comprehensive and open suite of video foundation models that pushes the boundaries of video generation.
 
- 78.6K runs
+78.6K runs
 
-#### wan-video / wan-2.1-1.3b 
+#### wan-video / wan-2.1-1.3b
 
- Generate 5s 480p videos. Wan is an advanced and powerful visual generation model developed by Tongyi Lab of Alibaba Group
+Generate 5s 480p videos. Wan is an advanced and powerful visual generation model developed by Tongyi Lab of Alibaba Group
 
- Updated 4 months, 2 weeks ago
+Updated 4 months, 2 weeks ago
 
- 38K runs
+38K runs
 
-#### tencent / hunyuan-video 
+#### tencent / hunyuan-video
 
- A state-of-the-art text-to-video generation model capable of creating high-quality videos with realistic motion from text descriptions
+A state-of-the-art text-to-video generation model capable of creating high-quality videos with realistic motion from text descriptions
 
- Updated 5 months, 3 weeks ago
+Updated 5 months, 3 weeks ago
 
- 108.4K runs
+108.4K runs
 
-#### lightricks / ltx-video 
+#### lightricks / ltx-video
 
- LTX-Video is the first DiT-based video generation model capable of generating high-quality videos in real-time. It produces 24 FPS videos at a 768x512 resolution faster than they can be watched.
+LTX-Video is the first DiT-based video generation model capable of generating high-quality videos in real-time. It produces 24 FPS videos at a 768x512 resolution faster than they can be watched.
 
- Updated 6 months, 1 week ago
+Updated 6 months, 1 week ago
 
- 149K runs
+149.1K runs
 
-#### zsxkib / hunyuan-video2video 
+#### zsxkib / hunyuan-video2video
 
- Updated 7 months ago
+Updated 7 months ago
 
- 2.7K runs
+2.7K runs
 
-#### haiper-ai / haiper-video-2 
+#### haiper-ai / haiper-video-2
 
- Generate 4s and 6s videos from a prompt or image
+Generate 4s and 6s videos from a prompt or image
 
- Updated 7 months, 1 week ago
+Updated 7 months, 1 week ago
 
- 10.8K runs
+10.8K runs
 
-#### genmoai / mochi-1 
+#### genmoai / mochi-1
 
- Mochi 1 preview is an open video generation model with high-fidelity motion and strong prompt adherence in preliminary evaluation
+Mochi 1 preview is an open video generation model with high-fidelity motion and strong prompt adherence in preliminary evaluation
 
- Updated 7 months, 2 weeks ago
+Updated 7 months, 2 weeks ago
 
- 2.9K runs
+2.9K runs
 
-#### zsxkib / pyramid-flow 
+#### zsxkib / pyramid-flow
 
- Text-to-Video + Image-to-Video: Pyramid Flow Autoregressive Video Generation method based on Flow Matching
+Text-to-Video + Image-to-Video: Pyramid Flow Autoregressive Video Generation method based on Flow Matching
 
- Updated 9 months, 1 week ago
+Updated 9 months, 1 week ago
 
- 8.6K runs
+8.6K runs
 
-#### cuuupid / cogvideox-5b 
+#### cuuupid / cogvideox-5b
 
- Generate high quality videos from a prompt
+Generate high quality videos from a prompt
 
- Updated 10 months, 2 weeks ago
+Updated 10 months, 2 weeks ago
 
- 2.2K runs
+2.2K runs
 
-#### meta / sam-2-video 
+#### meta / sam-2-video
 
- SAM 2: Segment Anything v2 (for videos)
+SAM 2: Segment Anything v2 (for videos)
 
- Updated 11 months ago
+Updated 11 months ago
 
- 36.8K runs
+36.8K runs
 
-#### fofr / tooncrafter 
+#### fofr / tooncrafter
 
- Create videos from illustrated input images
+Create videos from illustrated input images
 
- Updated 1 year ago
+Updated 1 year ago
 
- 54.5K runs
+54.5K runs
 
-#### fofr / video-morpher 
+#### fofr / video-morpher
 
- Generate a video that morphs between subjects, with an optional style
+Generate a video that morphs between subjects, with an optional style
 
- Updated 1 year, 2 months ago
+Updated 1 year, 2 months ago
 
- 14.7K runs
+14.7K runs
 
-#### cjwbw / videocrafter 
+#### cjwbw / videocrafter
 
- VideoCrafter2: Text-to-Video and Image-to-Video Generation and Editing
+VideoCrafter2: Text-to-Video and Image-to-Video Generation and Editing
 
- Updated 1 year, 5 months ago
+Updated 1 year, 5 months ago
 
- 108.9K runs
+108.9K runs
 
-#### ali-vilab / i2vgen-xl 
+#### ali-vilab / i2vgen-xl
 
- RESEARCH/NON-COMMERCIAL USE ONLY: High-Quality Image-to-Video Synthesis via Cascaded Diffusion Models
+RESEARCH/NON-COMMERCIAL USE ONLY: High-Quality Image-to-Video Synthesis via Cascaded Diffusion Models
 
- Updated 1 year, 6 months ago
+Updated 1 year, 6 months ago
 
- 127.7K runs
+127.7K runs
 
-#### open-mmlab / pia 
+#### open-mmlab / pia
 
- Personalized Image Animator
+Personalized Image Animator
 
- 103.4K runs
+103.4K runs
 
-#### zsxkib / animatediff-illusions 
+#### zsxkib / animatediff-illusions
 
- Monster Labs' Controlnet QR Code Monster v2 For SD-1.5 on top of AnimateDiff Prompt Travel (Motion Module SD 1.5 v2)
+Monster Labs' Controlnet QR Code Monster v2 For SD-1.5 on top of AnimateDiff Prompt Travel (Motion Module SD 1.5 v2)
 
- Updated 1 year, 8 months ago
+Updated 1 year, 8 months ago
 
- 10.4K runs
+10.4K runs
 
-#### lucataco / hotshot-xl 
+#### lucataco / hotshot-xl
 
- 😊 Hotshot-XL is an AI text-to-GIF model trained to work alongside Stable Diffusion XL
+😊 Hotshot-XL is an AI text-to-GIF model trained to work alongside Stable Diffusion XL
 
- 731K runs
+731K runs
 
-#### zsxkib / animatediff-prompt-travel 
+#### zsxkib / animatediff-prompt-travel
 
- 🎨AnimateDiff Prompt Travel🧭 Seamlessly Navigate and Animate Between Text-to-Image Prompts for Dynamic Visual Narratives
+🎨AnimateDiff Prompt Travel🧭 Seamlessly Navigate and Animate Between Text-to-Image Prompts for Dynamic Visual Narratives
 
- 5.7K runs
+5.7K runs
 
-#### zsxkib / animate-diff 
+#### zsxkib / animate-diff
 
- 🎨 AnimateDiff (w/ MotionLoRAs for Panning, Zooming, etc): Animate Your Personalized Text-to-Image Diffusion Models without Specific Tuning
+🎨 AnimateDiff (w/ MotionLoRAs for Panning, Zooming, etc): Animate Your Personalized Text-to-Image Diffusion Models without Specific Tuning
 
- Updated 1 year, 9 months ago
+Updated 1 year, 9 months ago
 
- 58.2K runs
+58.2K runs
 
-#### lucataco / animate-diff 
+#### lucataco / animate-diff
 
- Animate Your Personalized Text-to-Image Diffusion Models
+Animate Your Personalized Text-to-Image Diffusion Models
 
- 305.7K runs
+305.7K runs
 
-#### anotherjesse / zeroscope-v2-xl 
+#### anotherjesse / zeroscope-v2-xl
 
- Zeroscope V2 XL & 576w
+Zeroscope V2 XL & 576w
 
- Updated 1 year, 11 months ago
+Updated 1 year, 11 months ago
 
- 290.9K runs
+290.9K runs
 
-#### cjwbw / controlvideo 
+#### cjwbw / controlvideo
 
- Training-free Controllable Text-to-Video Generation
+Training-free Controllable Text-to-Video Generation
 
- Updated 2 years, 1 month ago
+Updated 2 years, 1 month ago
 
- 2.4K runs
+2.4K runs
 
-#### cjwbw / text2video-zero 
+#### cjwbw / text2video-zero
 
- Text-to-Image Diffusion Models are Zero-Shot Video Generators
+Text-to-Image Diffusion Models are Zero-Shot Video Generators
 
- Updated 2 years, 3 months ago
+Updated 2 years, 3 months ago
 
- 41.9K runs
+41.9K runs
 
-#### cjwbw / damo-text-to-video 
+#### cjwbw / damo-text-to-video
 
- Multi-stage text-to-video generation
+Multi-stage text-to-video generation
 
- 148.9K runs
+148.9K runs
 
-#### andreasjansson / tile-morph 
+#### andreasjansson / tile-morph
 
- Create tileable animations with seamless transitions
+Create tileable animations with seamless transitions
 
- Updated 2 years, 5 months ago
+Updated 2 years, 5 months ago
 
- 529.3K runs
+529.3K runs
 
-#### arielreplicate / deoldify\_​video 
+#### arielreplicate / deoldify_​video
 
- Add colours to old video footage.
+Add colours to old video footage.
 
- 5.6K runs
+5.6K runs
 
-#### pollinations / real-basicvsr-video-superresolution 
+#### pollinations / real-basicvsr-video-superresolution
 
- RealBasicVSR: Investigating Tradeoffs in Real-World Video Super-Resolution
+RealBasicVSR: Investigating Tradeoffs in Real-World Video Super-Resolution
 
- 9.1K runs
+9.1K runs
 
-#### arielreplicate / robust\_​video\_​matting 
+#### arielreplicate / robust_​video_​matting
 
- extract foreground of a video
+extract foreground of a video
 
- Updated 2 years, 7 months ago
+Updated 2 years, 7 months ago
 
- 56.5K runs
+56.5K runs
 
-#### arielreplicate / stable\_​diffusion\_​infinite\_​zoom 
+#### arielreplicate / stable_​diffusion_​infinite_​zoom
 
- Use Runway's Stable-diffusion inpainting model to create an infinite loop video
+Use Runway's Stable-diffusion inpainting model to create an infinite loop video
 
- Updated 2 years, 8 months ago
+Updated 2 years, 8 months ago
 
- 38.3K runs
+38.3K runs
 
-#### andreasjansson / stable-diffusion-animation 
+#### andreasjansson / stable-diffusion-animation
 
- Animate Stable Diffusion by interpolating between two prompts
+Animate Stable Diffusion by interpolating between two prompts
 
- 119.1K runs
+119.1K runs
 
-#### nateraw / stable-diffusion-videos 
+#### nateraw / stable-diffusion-videos
 
- Generate videos by interpolating the latent space of Stable Diffusion
+Generate videos by interpolating the latent space of Stable Diffusion
 
- Updated 2 years, 10 months ago
+Updated 2 years, 10 months ago
 
- 58.5K runs
+58.5K runs
 
-#### deforum / deforum\_​stable\_​diffusion 
+#### deforum / deforum_​stable_​diffusion
 
- Animating prompts with stable diffusion
+Animating prompts with stable diffusion
 
- 264.8K runs
+264.8K runs
