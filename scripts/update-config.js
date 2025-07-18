@@ -83,8 +83,10 @@ function parseEnvFile() {
         console.log(
           `📄 Found .env.local with ${
             Object.keys(envVars).length
-          } environment variable(s)`
+          } environment variable(s): ${Object.keys(envVars).join(", ")}`
         );
+      } else {
+        console.log("📄 No .env.local file found or no environment variables parsed");
       }
     }
   } catch (error) {
@@ -131,7 +133,10 @@ function updateClaudeDesktopConfig() {
     console.log(
       `✅ Successfully updated Claude Desktop config at ${claudeDesktopConfigPath}`
     );
-    console.log(`   Added server: ${projectName}`);
+    console.log(`   Server: ${projectName} → ${serverConfig.command} ${serverConfig.args.join(" ")}`);
+    if (serverConfig.env) {
+      console.log(`   Environment variables: ${Object.keys(serverConfig.env).join(", ")}`);
+    }
     return true;
   } catch (error) {
     console.log(`⚠️  Could not update Claude Desktop config: ${error.message}`);
@@ -166,7 +171,10 @@ function updateCursorConfig() {
     // Write the updated config back to the file
     fs.writeFileSync(cursorConfigPath, JSON.stringify(config, null, 2), "utf8");
     console.log(`✅ Successfully updated Cursor config at ${cursorConfigPath}`);
-    console.log(`   Added server: ${projectName}`);
+    console.log(`   Server: ${projectName} → ${serverConfig.command} ${serverConfig.args.join(" ")}`);
+    if (serverConfig.env) {
+      console.log(`   Environment variables: ${Object.keys(serverConfig.env).join(", ")}`);
+    }
     return true;
   } catch (error) {
     console.log(`⚠️  Could not update Cursor config: ${error.message}`);
@@ -201,7 +209,10 @@ function updateClaudeCodeConfig() {
     console.log(
       `✅ Successfully updated Claude Code config at ${claudeCodeConfigPath}`
     );
-    console.log(`   Added server: ${projectName}`);
+    console.log(`   Server: ${projectName} → ${serverConfig.command} ${serverConfig.args.join(" ")}`);
+    if (serverConfig.env) {
+      console.log(`   Environment variables: ${Object.keys(serverConfig.env).join(", ")}`);
+    }
     return true;
   } catch (error) {
     console.log(`⚠️  Could not update Claude Code config: ${error.message}`);
@@ -236,7 +247,10 @@ function updateGeminiConfig() {
     // Write the updated config back to the file
     fs.writeFileSync(geminiConfigPath, JSON.stringify(config, null, 2), "utf8");
     console.log(`✅ Successfully updated Gemini config at ${geminiConfigPath}`);
-    console.log(`   Added server: ${projectName}`);
+    console.log(`   Server: ${projectName} → ${serverConfig.command} ${serverConfig.args.join(" ")}`);
+    if (serverConfig.env) {
+      console.log(`   Environment variables: ${Object.keys(serverConfig.env).join(", ")}`);
+    }
     return true;
   } catch (error) {
     console.log(`⚠️  Could not update Gemini config: ${error.message}`);
@@ -267,7 +281,10 @@ function updateMcpConfig() {
     // Write the updated config back to the file
     fs.writeFileSync(mcpConfigPath, JSON.stringify(config, null, 2), "utf8");
     console.log(`✅ Successfully updated MCP config at ${mcpConfigPath}`);
-    console.log(`   Added server: ${projectName}`);
+    console.log(`   Server: ${projectName} → ${serverConfig.command} ${serverConfig.args.join(" ")}`);
+    if (serverConfig.env) {
+      console.log(`   Environment variables: ${Object.keys(serverConfig.env).join(", ")}`);
+    }
     return true;
   } catch (error) {
     console.log(`⚠️  Could not update MCP config: ${error.message}`);
@@ -278,7 +295,10 @@ function updateMcpConfig() {
 // Main execution
 console.log(`🚀 Installing MCP server: ${projectName}`);
 console.log(`   Server path: ${path.join(currentDir, "dist/index.js")}`);
-console.log(`   Installing to: ${appsToInstall.join(", ")}`);
+console.log(`   Target applications: ${appsToInstall.join(", ")}`);
+if (Object.keys(envVars).length > 0) {
+  console.log(`   Environment variables: ${Object.keys(envVars).join(", ")}`);
+}
 console.log("");
 
 let claudeSuccess = false;
@@ -342,10 +362,14 @@ if (
 
   console.log("");
   console.log("📖 Usage:");
-  console.log(
-    "   You can now use the 'run_parallel_claude_tasks' tool to run multiple"
-  );
-  console.log("   Claude prompts in parallel with optional file contexts.");
+  console.log("   You can now use the video generation tools including:");
+  console.log("   • generate-video - Generate videos from text or images");
+  console.log("   • get-video-metadata - Extract video file information");
+  console.log("   • adjust-video-speed - Change video playback speed");
+  console.log("   • scale-video - Resize video resolution");
+  console.log("   • apply-video-filters - Apply FFmpeg filters");
+  console.log("   • concatenate-segments - Join multiple videos");
+  console.log("   • separate-audio-and-video - Split audio and video tracks");
 } else {
   console.log("❌ Installation failed for selected applications");
   console.log(

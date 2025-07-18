@@ -1214,6 +1214,125 @@ server.tool(
   }
 );
 
+// Merge audio and video tool
+server.tool(
+  "merge-audio-and-video",
+  "Merge an audio file with a video file with options for replacing existing audio and trimming to match durations",
+  {
+    video_input: z.string().describe("Absolute path to the input video file"),
+    audio_input: z.string().describe("Absolute path to the input audio file"),
+    output: z.string().describe("Absolute path for the merged output video file"),
+    replace_audio: z.boolean().optional().describe("Replace existing audio in video (default: true)"),
+    trim_to_match: z.enum(['video', 'audio', 'none']).optional().describe("Trim to match duration: 'video' (trim audio to video length), 'audio' (trim video to audio length), 'none' (no trimming, default)"),
+  },
+  async ({ video_input, audio_input, output, replace_audio = true, trim_to_match = 'none' }) => {
+    try {
+      // Validate input files exist
+      await fs.access(video_input);
+      await fs.access(audio_input);
+      
+      // Ensure output directory exists
+      await fs.mkdir(path.dirname(output), { recursive: true });
+      
+      // Get duration of both files if trimming is needed
+      let videoDuration = 0;
+      let audioDuration = 0;
+      
+      if (trim_to_match !== 'none') {
+        // Get video duration
+        const videoProbeCommand = `ffprobe -v quiet -show_entries format=duration -of csv=p=0 "${video_input}"`;
+        const { stdout: videoStdout } = await execAsync(videoProbeCommand);
+        videoDuration = parseFloat(videoStdout.trim());
+        
+        // Get audio duration
+        const audioProbeCommand = `ffprobe -v quiet -show_entries format=duration -of csv=p=0 "${audio_input}"`;
+        const { stdout: audioStdout } = await execAsync(audioProbeCommand);
+        audioDuration = parseFloat(audioStdout.trim());
+      }
+      
+      // Build FFmpeg command based on options
+      let ffmpegCommand = `ffmpeg -i "${video_input}" -i "${audio_input}"`;
+      
+      // Add trimming options if specified
+      if (trim_to_match === 'video') {
+        // Trim audio to match video duration
+        ffmpegCommand += ` -t ${videoDuration}`;
+      } else if (trim_to_match === 'audio') {
+        // Trim video to match audio duration
+        ffmpegCommand += ` -t ${audioDuration}`;
+      }
+      
+      // Add stream mapping and encoding options
+      if (replace_audio) {
+        // Replace existing audio with new audio
+        ffmpegCommand += ` -c:v copy -c:a aac -map 0:v:0 -map 1:a:0`;
+      } else {
+        // Mix new audio with existing audio
+        ffmpegCommand += ` -filter_complex "[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=3" -c:v copy -c:a aac`;
+      }
+      
+      ffmpegCommand += ` "${output}"`;
+      
+      await execAsync(ffmpegCommand);
+      
+      // Build summary information
+      const processingMethod = replace_audio ? 'Replaced existing audio' : 'Mixed new audio with existing audio';
+      const durationInfo = trim_to_match === 'video' ? `Trimmed to video duration: ${videoDuration.toFixed(2)}s` :
+                           trim_to_match === 'audio' ? `Trimmed to audio duration: ${audioDuration.toFixed(2)}s` :
+                           'No duration trimming applied';
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: `🎬🎵 **Audio and Video Merge Complete**
+
+**📁 Video Input:** ${video_input}
+**📁 Audio Input:** ${audio_input}
+**📁 Output:** ${output}
+
+**⚙️ Processing:**
+- Audio Handling: ${processingMethod}
+- Duration Handling: ${durationInfo}
+- Video Codec: Copy (no re-encoding)
+- Audio Codec: AAC
+
+${trim_to_match !== 'none' ? `**📏 Duration Information:**
+- Video Duration: ${videoDuration.toFixed(2)}s
+- Audio Duration: ${audioDuration.toFixed(2)}s
+- Final Duration: ${trim_to_match === 'video' ? videoDuration.toFixed(2) : audioDuration.toFixed(2)}s` : ''}
+
+✅ **Success!** Audio and video have been merged successfully.
+
+**Use Cases:**
+- Add background music to video
+- Replace poor quality audio with better recording
+- Add narration or voiceover to existing video
+- Combine separately recorded audio and video tracks`
+          }
+        ]
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `❌ Error merging audio and video: ${error instanceof Error ? error.message : String(error)}
+
+**Common Issues:**
+- FFmpeg not installed (install via: brew install ffmpeg)
+- Input files don't exist or are inaccessible
+- Output directory doesn't exist or lacks write permissions
+- Incompatible audio/video formats
+- Insufficient disk space for output file
+- Audio or video file is corrupted or invalid`
+          }
+        ]
+      };
+    }
+  }
+);
+
 // Start the server
 async function main() {
   try {
