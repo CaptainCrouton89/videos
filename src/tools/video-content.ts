@@ -19,6 +19,7 @@ export const getContentSchema = z.object({
     .optional()
     .default("720p")
     .describe("Resolution of screenshots (default: 720p). Format: WIDTHxHEIGHT or 720p/1080p/480p"),
+  verbose: z.boolean().optional().default(false).describe("Enable verbose output mode (default: false)"),
 });
 
 export async function getContent({
@@ -26,6 +27,7 @@ export async function getContent({
   output_directory,
   interval = 0.5,
   resolution = "720p",
+  verbose = false,
 }: z.infer<typeof getContentSchema>) {
   try {
     // Validate input file exists
@@ -61,11 +63,12 @@ export async function getContent({
     const screenshotFiles = files.filter(file => file.startsWith("screenshot_") && file.endsWith(".png"));
     const screenshotCount = screenshotFiles.length;
 
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `📸 **Video Content Extraction Complete**
+    if (verbose) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `📸 **Video Content Extraction Complete**
 
 **📁 Video Input:** ${input}
 **📁 Screenshots Directory:** ${output_directory}
@@ -76,9 +79,19 @@ export async function getContent({
 ✅ **Success!** Screenshots have been extracted and saved to: **${output_directory}**
 
 **Instructions:** Read the images in the directory to evaluate the content of the video`,
-        },
-      ],
-    };
+          },
+        ],
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Video content extraction complete. ${screenshotCount} screenshots saved to: ${output_directory}`,
+          },
+        ],
+      };
+    }
   } catch (error) {
     return {
       content: [

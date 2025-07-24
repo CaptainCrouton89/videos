@@ -7,10 +7,12 @@ const execAsync = promisify(exec);
 
 export const getVideoMetadataSchema = z.object({
   file_path: z.string().describe("Absolute path to the video file"),
+  verbose: z.boolean().optional().default(false).describe("Enable verbose output mode (default: false)"),
 });
 
 export async function getVideoMetadata({
   file_path,
+  verbose = false,
 }: z.infer<typeof getVideoMetadataSchema>) {
   try {
     // Check if file exists
@@ -65,11 +67,12 @@ export async function getVideoMetadata({
     const fileSizeBytes = parseInt(format.size || '0');
     const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2);
 
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `📹 **Video Metadata Analysis**
+    if (verbose) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `📹 **Video Metadata Analysis**
 
 **📁 File Information:**
 - Path: ${file_path}
@@ -102,9 +105,19 @@ ${format.bit_rate ? `- Overall Bitrate: ${(parseInt(format.bit_rate) / 1000).toF
 - Has Audio: ${audioProperties ? 'Yes' : 'No'}
 - Video Stream Count: ${metadata.streams.filter((s: any) => s.codec_type === 'video').length}
 - Audio Stream Count: ${metadata.streams.filter((s: any) => s.codec_type === 'audio').length}`
-        }
-      ]
-    };
+          }
+        ]
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Video metadata: ${width}x${height}, ${duration.toFixed(1)}s, ${audioProperties ? 'with audio' : 'no audio'}`,
+          }
+        ]
+      };
+    }
   } catch (error) {
     return {
       content: [

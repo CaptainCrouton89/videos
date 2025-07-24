@@ -12,12 +12,14 @@ export const adjustVideoSpeedSchema = z.object({
     .number()
     .describe("Speed factor (0.5 = half speed, 2.0 = double speed)"),
   output: z.string().describe("Absolute path for the output video file"),
+  verbose: z.boolean().optional().default(false).describe("Enable verbose output mode (default: false)"),
 });
 
 export async function adjustVideoSpeed({
   input,
   speed_factor,
   output,
+  verbose = false,
 }: z.infer<typeof adjustVideoSpeedSchema>) {
   try {
     // Validate input file exists
@@ -34,24 +36,35 @@ export async function adjustVideoSpeed({
 
     const { stdout, stderr } = await execAsync(ffmpegCommand);
 
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `⚡ **Video Speed Adjustment Complete**
+    if (verbose) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `⚡ **Video Speed Adjustment Complete**
 
 **📁 Input:** ${input}
 **📁 Output:** ${output}
 **🎬 Speed Factor:** ${speed_factor}x (${
-            speed_factor > 1 ? "faster" : speed_factor < 1 ? "slower" : "normal"
-          })
+              speed_factor > 1 ? "faster" : speed_factor < 1 ? "slower" : "normal"
+            })
 **⚙️ Video Filter:** setpts=${setptsValue}*PTS
 **🎵 Audio Filter:** atempo=${speed_factor}
 
 ✅ **Success!** Video speed has been adjusted and saved to the output file.`,
-        },
-      ],
-    };
+          },
+        ],
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Video speed adjustment complete (${speed_factor}x). Output: ${output}`,
+          },
+        ],
+      };
+    }
   } catch (error) {
     return {
       content: [
@@ -81,6 +94,7 @@ export const scaleVideoSchema = z.object({
     .boolean()
     .optional()
     .describe("Maintain aspect ratio (default: false)"),
+  verbose: z.boolean().optional().default(false).describe("Enable verbose output mode (default: false)"),
 });
 
 export async function scaleVideo({
@@ -89,6 +103,7 @@ export async function scaleVideo({
   height,
   output,
   maintain_aspect = false,
+  verbose = false,
 }: z.infer<typeof scaleVideoSchema>) {
   try {
     // Validate input file exists
@@ -107,24 +122,35 @@ export async function scaleVideo({
 
     const { stdout, stderr } = await execAsync(ffmpegCommand);
 
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `📏 **Video Scaling Complete**
+    if (verbose) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `📏 **Video Scaling Complete**
 
 **📁 Input:** ${input}
 **📁 Output:** ${output}
 **🎬 Target Resolution:** ${width}x${height}
 **⚙️ Scale Filter:** ${scaleFilter}
 **📐 Aspect Ratio:** ${
-            maintain_aspect ? "Maintained" : "Forced to exact dimensions"
-          }
+              maintain_aspect ? "Maintained" : "Forced to exact dimensions"
+            }
 
 ✅ **Success!** Video has been resized and saved to the output file.`,
-        },
-      ],
-    };
+          },
+        ],
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Video scaling complete (${width}x${height}). Output: ${output}`,
+          },
+        ],
+      };
+    }
   } catch (error) {
     return {
       content: [
@@ -155,6 +181,7 @@ export const applyVideoFiltersSchema = z.object({
     .boolean()
     .optional()
     .describe("Copy audio stream unchanged (default: true)"),
+  verbose: z.boolean().optional().default(false).describe("Enable verbose output mode (default: false)"),
 });
 
 export async function applyVideoFilters({
@@ -162,6 +189,7 @@ export async function applyVideoFilters({
   filter_string,
   output,
   copy_audio = true,
+  verbose = false,
 }: z.infer<typeof applyVideoFiltersSchema>) {
   try {
     // Validate input file exists
@@ -176,18 +204,19 @@ export async function applyVideoFilters({
 
     const { stdout, stderr } = await execAsync(ffmpegCommand);
 
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `🎨 **Video Filters Applied**
+    if (verbose) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `🎨 **Video Filters Applied**
 
 **📁 Input:** ${input}
 **📁 Output:** ${output}
 **⚙️ Filter String:** ${filter_string}
 **🎵 Audio Processing:** ${
-            copy_audio ? "Copied unchanged" : "Re-encoded with AAC"
-          }
+              copy_audio ? "Copied unchanged" : "Re-encoded with AAC"
+            }
 
 ✅ **Success!** Video filters have been applied and saved to the output file.
 
@@ -197,9 +226,19 @@ export async function applyVideoFilters({
 - rotate=PI/4 (rotate 45 degrees)
 - blur=5 (apply blur effect)
 - sharpen=luma_msize_x=5:luma_msize_y=5 (sharpen image)`,
-        },
-      ],
-    };
+          },
+        ],
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Video filters applied (${filter_string}). Output: ${output}`,
+          },
+        ],
+      };
+    }
   } catch (error) {
     return {
       content: [

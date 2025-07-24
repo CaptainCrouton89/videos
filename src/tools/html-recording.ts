@@ -12,15 +12,8 @@ import { z } from "zod";
 
 export const recordHtmlVideoSchema = z.object({
   htmlFilePath: z.string().describe("Path to HTML file to record"),
-  duration: z
-    .number()
-    .optional()
-    .default(5)
-    .describe("Duration in seconds to record (default: 5)"),
-  outputPath: z
-    .string()
-    .optional()
-    .describe("Output path for the video file (default: recording.mp4)"),
+  duration: z.number().describe("Exact duration in seconds to record"),
+  outputPath: z.string().describe("Output path for the video file"),
   format: z
     .enum(["mp4", "webm", "avi", "mov"])
     .optional()
@@ -33,6 +26,11 @@ export const recordHtmlVideoSchema = z.object({
     .describe(
       "Aspect ratio: 16x9 (landscape), 9x16 (portrait), or 1x1 (square) (default: 16x9)"
     ),
+  verbose: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe("Enable verbose output mode (default: false)"),
 });
 
 export const takeScreenshotSchema = z.object({
@@ -65,6 +63,11 @@ export const takeScreenshotSchema = z.object({
     .optional()
     .default(false)
     .describe("Take full page screenshot (default: false)"),
+  verbose: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe("Enable verbose output mode (default: false)"),
 });
 
 export async function recordHtmlVideo({
@@ -73,6 +76,7 @@ export async function recordHtmlVideo({
   outputPath,
   format = "mp4",
   aspectRatio = "16x9",
+  verbose = false,
 }: z.infer<typeof recordHtmlVideoSchema>) {
   try {
     // Set default output path based on format if not provided
@@ -170,7 +174,8 @@ export async function recordHtmlVideo({
       renameSync(latestWebM, finalOutputPath);
     }
 
-    const response = `Video recording completed successfully:
+    if (verbose) {
+      const response = `Video recording completed successfully:
 - HTML file: ${resolvedHtmlPath}
 - Duration: ${duration} seconds
 - Output: ${finalOutputPath}
@@ -180,14 +185,24 @@ export async function recordHtmlVideo({
 
 The video has been saved to the current directory.`;
 
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: response,
-        },
-      ],
-    };
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: response,
+          },
+        ],
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ HTML video recording complete. Output: ${finalOutputPath}`,
+          },
+        ],
+      };
+    }
   } catch (error) {
     const errorMessage = `Error recording HTML video: ${
       error instanceof Error ? error.message : String(error)
@@ -212,6 +227,7 @@ export async function takeScreenshot({
   width = 1920,
   height = 1080,
   fullPage = false,
+  verbose = false,
 }: z.infer<typeof takeScreenshotSchema>) {
   try {
     // Validate that either htmlFilePath or htmlContent is provided
@@ -263,7 +279,8 @@ export async function takeScreenshot({
 
     await browser.close();
 
-    const response = `Screenshot taken successfully:
+    if (verbose) {
+      const response = `Screenshot taken successfully:
 - Source: ${htmlFilePath ? `File: ${htmlFilePath}` : "HTML Content"}
 - Output: ${finalOutputPath}
 - Format: ${format.toUpperCase()}
@@ -272,14 +289,24 @@ export async function takeScreenshot({
 
 The screenshot has been saved to ${finalOutputPath}.`;
 
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: response,
-        },
-      ],
-    };
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: response,
+          },
+        ],
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Screenshot complete. Output: ${finalOutputPath}`,
+          },
+        ],
+      };
+    }
   } catch (error) {
     const errorMessage = `Error taking screenshot: ${
       error instanceof Error ? error.message : String(error)

@@ -13,6 +13,7 @@ export const concatenateSegmentsSchema = z.object({
   re_encode: z.boolean().optional().describe("Re-encode videos for compatibility (default: true for mixed inputs)"),
   fps: z.number().optional().describe("Frame rate for the output video (default: 25)"),
   resolution: z.string().optional().describe("Output resolution in WIDTHxHEIGHT format (default: auto)"),
+  verbose: z.boolean().optional().default(false).describe("Enable verbose output mode (default: false)"),
 });
 
 export async function concatenateSegments({
@@ -22,6 +23,7 @@ export async function concatenateSegments({
   re_encode,
   fps = 25,
   resolution,
+  verbose = false,
 }: z.infer<typeof concatenateSegmentsSchema>) {
   try {
     // Validate all input files exist
@@ -125,11 +127,12 @@ export async function concatenateSegments({
     if (hasImages) typeSummary.push(`${inputTypes.filter(t => t === 'image').length} images`);
     if (hasVideos) typeSummary.push(`${inputTypes.filter(t => t === 'video').length} videos`);
     
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `🔗 **Media Concatenation Complete**
+    if (verbose) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `🔗 **Media Concatenation Complete**
 
 **📁 Input Files:** ${inputs.length} files (${typeSummary.join(', ')})
 ${inputs.map((input, index) => `  ${index + 1}. ${path.basename(input)} (${inputTypes[index]})`).join('\n')}
@@ -144,9 +147,19 @@ ${resolution ? `**📏 Resolution:** ${resolution}` : ''}
 **Supported Formats:**
 - Images: JPG, PNG, GIF, BMP, TIFF, WebP
 - Videos: MP4, AVI, MOV, MKV, WMV, FLV, WebM`
-        }
-      ]
-    };
+          }
+        ]
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Media concatenation complete. ${inputs.length} files joined. Output: ${output}`
+          }
+        ]
+      };
+    }
   } catch (error) {
     return {
       content: [
@@ -176,6 +189,7 @@ export const imagesToVideoSchema = z.object({
   audio_input: z.string().optional().describe("Optional audio file to add to the video"),
   transition_duration: z.number().optional().describe("Duration of crossfade transition between images in seconds (default: 0)"),
   loop_audio: z.boolean().optional().describe("Loop audio to match video duration (default: false)"),
+  verbose: z.boolean().optional().default(false).describe("Enable verbose output mode (default: false)"),
 });
 
 export async function imagesToVideo({
@@ -187,6 +201,7 @@ export async function imagesToVideo({
   audio_input,
   transition_duration = 0,
   loop_audio = false,
+  verbose = false,
 }: z.infer<typeof imagesToVideoSchema>) {
   try {
     // Validate all image files exist
@@ -271,11 +286,12 @@ export async function imagesToVideo({
     
     await execAsync(ffmpegCommand, { timeout: 300000, maxBuffer: 1024 * 1024 * 10 });
     
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `🖼️➡️🎬 **Images to Video Conversion Complete**
+    if (verbose) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `🖼️➡️🎬 **Images to Video Conversion Complete**
 
 **📁 Input Images:** ${images.length} images
 ${images.map((img, i) => `  ${i + 1}. ${path.basename(img)} (${durations![i]}s)`).join('\n')}
@@ -295,9 +311,19 @@ ${audio_input ? `- Audio: ${path.basename(audio_input)} ${loop_audio ? '(looped)
 - Generate video content from still images
 - Build animated presentations
 - Convert image sequences to video format`
-        }
-      ]
-    };
+          }
+        ]
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Images to video conversion complete. ${images.length} images, ${totalDuration}s duration. Output: ${output}`
+          }
+        ]
+      };
+    }
   } catch (error) {
     return {
       content: [

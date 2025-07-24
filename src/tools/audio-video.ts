@@ -11,6 +11,7 @@ export const separateAudioAndVideoSchema = z.object({
   video_output: z.string().describe("Absolute path for the pure video output file (no audio)"),
   audio_output: z.string().describe("Absolute path for the pure audio output file"),
   audio_format: z.enum(['mp3', 'wav', 'aac', 'flac']).optional().describe("Audio format (default: mp3)"),
+  verbose: z.boolean().optional().default(false).describe("Enable verbose output mode (default: false)"),
 });
 
 export async function separateAudioAndVideo({
@@ -18,6 +19,7 @@ export async function separateAudioAndVideo({
   video_output,
   audio_output,
   audio_format = 'mp3',
+  verbose = false,
 }: z.infer<typeof separateAudioAndVideoSchema>) {
   try {
     // Validate input file exists
@@ -40,11 +42,12 @@ export async function separateAudioAndVideo({
       execAsync(audioCommand)
     ]);
     
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `🎬🎵 **Audio and Video Separation Complete**
+    if (verbose) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `🎬🎵 **Audio and Video Separation Complete**
 
 **📁 Input:** ${input}
 **📁 Video Output:** ${video_output} (no audio)
@@ -61,9 +64,19 @@ export async function separateAudioAndVideo({
 - Extract audio for podcasts or music
 - Separate tracks for individual editing
 - Convert audio to different formats`
-        }
-      ]
-    };
+          }
+        ]
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Audio and video separation complete. Video: ${video_output}, Audio: ${audio_output}`
+          }
+        ]
+      };
+    }
   } catch (error) {
     return {
       content: [
@@ -89,6 +102,7 @@ export const mergeAudioAndVideoSchema = z.object({
   output: z.string().describe("Absolute path for the merged output video file"),
   replace_audio: z.boolean().optional().describe("Replace existing audio in video (default: true)"),
   trim_to_match: z.enum(['video', 'audio', 'none']).optional().describe("Trim to match duration: 'video' (trim audio to video length), 'audio' (trim video to audio length), 'none' (no trimming, default)"),
+  verbose: z.boolean().optional().default(false).describe("Enable verbose output mode (default: false)"),
 });
 
 export async function mergeAudioAndVideo({
@@ -97,6 +111,7 @@ export async function mergeAudioAndVideo({
   output,
   replace_audio = true,
   trim_to_match = 'none',
+  verbose = false,
 }: z.infer<typeof mergeAudioAndVideoSchema>) {
   try {
     // Validate input files exist
@@ -153,11 +168,12 @@ export async function mergeAudioAndVideo({
                          trim_to_match === 'audio' ? `Trimmed to audio duration: ${audioDuration.toFixed(2)}s` :
                          'No duration trimming applied';
     
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `🎬🎵 **Audio and Video Merge Complete**
+    if (verbose) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `🎬🎵 **Audio and Video Merge Complete**
 
 **📁 Video Input:** ${video_input}
 **📁 Audio Input:** ${audio_input}
@@ -181,9 +197,19 @@ ${trim_to_match !== 'none' ? `**📏 Duration Information:**
 - Replace poor quality audio with better recording
 - Add narration or voiceover to existing video
 - Combine separately recorded audio and video tracks`
-        }
-      ]
-    };
+          }
+        ]
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Audio and video merge complete. Output: ${output}`
+          }
+        ]
+      };
+    }
   } catch (error) {
     return {
       content: [

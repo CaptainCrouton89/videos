@@ -94,6 +94,7 @@ export const generateVideoSchema = z.object({
     .string()
     .optional()
     .describe("Relative path to save the video (default: 'videos')"),
+  verbose: z.boolean().optional().default(false).describe("Enable verbose output mode (default: false)"),
 });
 
 export async function generateVideo({
@@ -112,6 +113,7 @@ export async function generateVideo({
   camera_movement,
   motion_intensity,
   save_path,
+  verbose = false,
 }: z.infer<typeof generateVideoSchema>) {
   try {
     const modelConfig = VIDEO_MODELS[model];
@@ -387,17 +389,18 @@ export async function generateVideo({
       };
     });
 
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `🎬 ${isMultiplePrompts ? 'Parallel ' : ''}Video Generation ${
-            allSuccessful
-              ? "Completed Successfully!"
-              : completedCount > 0
-              ? `Partially Complete! (${completedCount}/${prompts.length} videos saved)`
-              : "Started Successfully!"
-          }
+    if (verbose) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `🎬 ${isMultiplePrompts ? 'Parallel ' : ''}Video Generation ${
+              allSuccessful
+                ? "Completed Successfully!"
+                : completedCount > 0
+                ? `Partially Complete! (${completedCount}/${prompts.length} videos saved)`
+                : "Started Successfully!"
+            }
 
 📋 **Model Details:**
 - Model: ${model} (${modelConfig.version})
@@ -433,9 +436,20 @@ ${
     ? "🖼️ This model supports both text-to-video and image-to-video!"
     : ""
 }`,
-        },
-      ],
-    };
+          },
+        ],
+      };
+    } else {
+      const successfulVideos = videoDetails.filter(detail => detail.savedFilePath);
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Video generation ${allSuccessful ? 'complete' : completedCount > 0 ? 'partially complete' : 'started'}. ${successfulVideos.length > 0 ? `Saved: ${successfulVideos.map(v => path.basename(v.savedFilePath!)).join(', ')}` : videoDetails.map(d => d.webUrl ? `Monitor: ${d.webUrl}` : '').filter(Boolean).join(', ')}`,
+          },
+        ],
+      };
+    }
   } catch (error) {
     return {
       content: [

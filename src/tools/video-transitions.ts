@@ -20,6 +20,7 @@ export const videoTransitionSchema = z.object({
   offset_mode: z.enum(['auto', 'manual']).default('auto').describe("How to calculate transition timing"),
   manual_offsets: z.array(z.number()).optional().describe("Manual offset times in seconds for each transition (only used with manual offset_mode)"),
   easing: z.enum(['linear', 'easeinsine', 'easeoutsine', 'easeinoutsine', 'easeinquad', 'easeoutquad', 'easeinoutquad']).default('linear').describe("Easing function for transition timing"),
+  verbose: z.boolean().optional().default(false).describe("Enable verbose output mode (default: false)"),
 });
 
 export async function videoTransition({
@@ -30,6 +31,7 @@ export async function videoTransition({
   offset_mode = 'auto',
   manual_offsets,
   easing = 'linear',
+  verbose = false,
 }: z.infer<typeof videoTransitionSchema>) {
   try {
     // Validate all input files exist
@@ -102,11 +104,12 @@ export async function videoTransition({
       totalDuration = manual_offsets!.reduce((sum, offset) => sum + offset, 0) + duration;
     }
     
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `🎬✨ **Video Transitions Complete**
+    if (verbose) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `🎬✨ **Video Transitions Complete**
 
 **📁 Input Videos:** ${inputs.length} videos
 ${inputs.map((input, i) => `  ${i + 1}. ${path.basename(input)}`).join('\n')}
@@ -129,9 +132,19 @@ ${offset_mode === 'manual' && manual_offsets ? `**🎯 Offsets:** ${manual_offse
 🔲 **Slice Effects:** hlslice, hrslice, vuslice, vdslice, diagtl, diagtr, diagbl, diagbr
 💨 **Motion Effects:** squeezeh, squeezev, zoomin, distance, pixelize, hblur
 🌪️ **Wind Effects:** hlwind, hrwind, vuwind, vdwind`
-        }
-      ]
-    };
+          }
+        ]
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Video transitions complete. ${inputs.length} videos with ${transition_type} transitions (~${totalDuration.toFixed(1)}s). Output: ${output}`
+          }
+        ]
+      };
+    }
   } catch (error) {
     return {
       content: [
@@ -167,6 +180,7 @@ export const advancedVideoEffectsSchema = z.object({
   color_primary: z.string().optional().describe("Primary color for effects that use colors (hex format: #FF0000)"),
   color_secondary: z.string().optional().describe("Secondary color for effects that use colors (hex format: #0000FF)"),
   preserve_audio: z.boolean().default(true).describe("Whether to preserve original audio"),
+  verbose: z.boolean().optional().default(false).describe("Enable verbose output mode (default: false)"),
 });
 
 export async function advancedVideoEffects({
@@ -177,6 +191,7 @@ export async function advancedVideoEffects({
   color_primary = '#FF0000',
   color_secondary = '#0000FF',
   preserve_audio = true,
+  verbose = false,
 }: z.infer<typeof advancedVideoEffectsSchema>) {
   try {
     // Validate input file exists
@@ -333,11 +348,12 @@ export async function advancedVideoEffects({
     
     await execAsync(ffmpegCommand, { timeout: 600000, maxBuffer: 1024 * 1024 * 20 });
     
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `🎨✨ **Advanced Video Effect Applied**
+    if (verbose) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `🎨✨ **Advanced Video Effect Applied**
 
 **📁 Input:** ${input}
 **📁 Output:** ${output}
@@ -356,9 +372,19 @@ ${color_secondary && ['duotone', 'split_tone'].includes(effect_type) ? `**🎨 S
 **💫 Blur Effects:** motion_blur, zoom_blur, radial_blur, tilt_shift, bokeh, dream
 **📺 Retro Effects:** old_tv, crt_monitor, film_burn, light_leak, lens_flare
 **🔍 Detection Effects:** edgedetect, threshold, solarize, underwater, vignette`
-        }
-      ]
-    };
+          }
+        ]
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Advanced video effect applied (${effect_type}, intensity: ${intensity}). Output: ${output}`
+          }
+        ]
+      };
+    }
   } catch (error) {
     return {
       content: [

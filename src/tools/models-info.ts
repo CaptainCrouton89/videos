@@ -28,6 +28,7 @@ export const getModelsSchema = z.object({
     .enum(["name", "max_duration", "quality", "speed"])
     .optional()
     .describe("Sort models by criteria (default: name)"),
+  verbose: z.boolean().optional().default(false).describe("Enable verbose output mode (default: false)"),
 });
 
 export async function getModels({
@@ -36,6 +37,7 @@ export async function getModels({
   resolution_filter,
   has_audio,
   sort_by = "name",
+  verbose = false,
 }: z.infer<typeof getModelsSchema>) {
   try {
     // Get all models with enhanced information
@@ -147,54 +149,55 @@ export async function getModels({
       companies: Object.keys(companyCounts).length,
     };
 
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `🎬 **Video Generation Models Database**
+    if (verbose) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `🎬 **Video Generation Models Database**
 
 📊 **Summary Statistics:**
 - Total Models: ${stats.total}
 - Companies: ${stats.companies} (${Object.entries(companyCounts)
-            .map(([company, count]) => `${company}: ${count}`)
-            .join(", ")})
+              .map(([company, count]) => `${company}: ${count}`)
+              .join(", ")})
 - With Audio: ${stats.withAudio}
 - Quality Distribution: Premium (${stats.byQuality.premium}), High (${
-            stats.byQuality.high
-          }), Medium (${stats.byQuality.medium}), Standard (${
-            stats.byQuality.standard
-          })
+              stats.byQuality.high
+            }), Medium (${stats.byQuality.medium}), Standard (${
+              stats.byQuality.standard
+            })
 - Type Distribution: Text-to-Video (${
-            stats.byType.textToVideo
-          }), Image-to-Video (${stats.byType.imageToVideo}), Both (${
-            stats.byType.both
-          })
+              stats.byType.textToVideo
+            }), Image-to-Video (${stats.byType.imageToVideo}), Both (${
+              stats.byType.both
+            })
 
 ${
-  filteredModels.length === 0
-    ? "❌ No models match your filters."
-    : `📋 **Model Details:**
+    filteredModels.length === 0
+      ? "❌ No models match your filters."
+      : `📋 **Model Details:**
 
 ${filteredModels
-  .map(
-    (model) => `
+    .map(
+      (model) => `
 **${model.name}** (${model.company})
 - Version: ${model.version}
 - Type: ${model.type}
 - Quality: ${model.qualityTier} | Speed: ${model.speedEstimate} | Cost: ${
-      model.costEstimate
-    }
+        model.costEstimate
+      }
 - Max Duration: ${model.maxDuration}s
 - Resolutions: ${model.resolutions.join(", ")}
 - Audio: ${model.hasAudio ? "Yes" : "No"}
 - Features: ${model.features.join(", ")}
 - Parameters: ${model.supportedParams.join(", ")}
 - Default Settings: ${Object.entries(model.defaultParams)
-      .map(([key, value]) => `${key}=${value}`)
-      .join(", ")}
+        .map(([key, value]) => `${key}=${value}`)
+        .join(", ")}
 `
-  )
-  .join("\n")}
+    )
+    .join("\n")}
 
 🎯 **Quality Tiers:**
 - **Premium**: Latest flagship models with best quality and features
@@ -224,10 +227,20 @@ ${filteredModels
 - **guidance_scale**: Generation quality control
 - **seed**: Random seed for reproducibility
 - **negative_prompt**: What to avoid in generation`
-}`,
-        },
-      ],
-    };
+  }`,
+          },
+        ],
+      };
+    } else {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `✅ Found ${stats.total} models. ${filteredModels.length === 0 ? "No models match your filters." : `Models: ${filteredModels.map(m => m.name).join(", ")}`}`,
+          },
+        ],
+      };
+    }
   } catch (error) {
     return {
       content: [
