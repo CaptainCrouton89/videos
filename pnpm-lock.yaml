@@ -17,6 +17,9 @@ importers:
       axios:
         specifier: ^1.6.2
         version: 1.8.3
+      playwright:
+        specifier: ^1.54.1
+        version: 1.54.1
       replicate:
         specifier: ^1.0.1
         version: 1.0.1
@@ -247,6 +250,11 @@ packages:
     resolution: {integrity: sha512-Rx/WycZ60HOaqLKAi6cHRKKI7zxWbJ31MhntmtwMoaTeF7XFH9hhBp8vITaMidfljRQ6eYWCKkaTK+ykVJHP2A==}
     engines: {node: '>= 0.8'}
 
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
   function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
 
@@ -372,6 +380,16 @@ packages:
   pkce-challenge@4.1.0:
     resolution: {integrity: sha512-ZBmhE1C9LcPoH9XZSdwiPtbPHZROwAnMy+kIFQVrnMCxY4Cudlz3gBOpzilgc0jOgRaiT3sIWfpMomW2ar2orQ==}
     engines: {node: '>=16.20.0'}
+
+  playwright-core@1.54.1:
+    resolution: {integrity: sha512-Nbjs2zjj0htNhzgiy5wu+3w09YetDx5pkrpI/kZotDlDUaYk0HVA5xrBVPdow4SAUIlhgKcJeJg4GRKW6xHusA==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.54.1:
+    resolution: {integrity: sha512-peWpSwIBmSLi6aW2auvrUtf2DqY16YYcCMO8rTVx486jKmDTJg7UAhyrraP98GB8BoPURZP8+nxO7TSd4cPr5g==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   process@0.11.10:
     resolution: {integrity: sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A==}
@@ -777,6 +795,9 @@ snapshots:
 
   fresh@2.0.0: {}
 
+  fsevents@2.3.2:
+    optional: true
+
   function-bind@1.1.2: {}
 
   get-intrinsic@1.3.0:
@@ -881,6 +902,14 @@ snapshots:
   path-to-regexp@8.2.0: {}
 
   pkce-challenge@4.1.0: {}
+
+  playwright-core@1.54.1: {}
+
+  playwright@1.54.1:
+    dependencies:
+      playwright-core: 1.54.1
+    optionalDependencies:
+      fsevents: 2.3.2
 
   process@0.11.10:
     optional: true

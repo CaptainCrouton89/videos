@@ -10,7 +10,14 @@ import {
   separateAudioAndVideo,
   separateAudioAndVideoSchema,
 } from "./tools/audio-video.js";
+import {
+  recordHtmlVideo,
+  recordHtmlVideoSchema,
+  takeScreenshot,
+  takeScreenshotSchema,
+} from "./tools/html-recording.js";
 import { getModels, getModelsSchema } from "./tools/models-info.js";
+import { getContent, getContentSchema } from "./tools/video-content.js";
 import {
   concatenateSegments,
   concatenateSegmentsSchema,
@@ -33,6 +40,12 @@ import {
   scaleVideo,
   scaleVideoSchema,
 } from "./tools/video-processing.js";
+import {
+  videoTransition,
+  videoTransitionSchema,
+  advancedVideoEffects,
+  advancedVideoEffectsSchema,
+} from "./tools/video-transitions.js";
 
 // Create the MCP server
 const server = new McpServer({
@@ -109,6 +122,41 @@ server.tool(
   "Get comprehensive information about all available video generation models including parameters, capabilities, performance, and cost estimates",
   getModelsSchema.shape,
   getModels
+);
+
+server.tool(
+  "get-content",
+  "Extract video content by taking screenshots at regular intervals and saving them to an output directory for analysis",
+  getContentSchema.shape,
+  getContent
+);
+
+server.tool(
+  "record-html-video",
+  "Opens an HTML file with Playwright and records it as a video at maximum dimensions (headless). Useful for creating video content that contains lots of text, logos, or abstract content. Can also be useful for videos that combine text with videos by layering them.",
+  recordHtmlVideoSchema.shape,
+  recordHtmlVideo
+);
+
+server.tool(
+  "take-screenshot",
+  "Takes a screenshot of an HTML file or HTML content",
+  takeScreenshotSchema.shape,
+  takeScreenshot
+);
+
+server.tool(
+  "video-transition",
+  "Apply professional transitions between multiple videos including fade, wipe, slide, dissolve, and advanced effects like glitch, datamosh, and cinematic transitions",
+  videoTransitionSchema.shape,
+  videoTransition
+);
+
+server.tool(
+  "advanced-video-effects",
+  "Apply advanced visual effects to videos including color grading, artistic filters, distortions, sci-fi effects, retro filters, and cinematic post-processing",
+  advancedVideoEffectsSchema.shape,
+  advancedVideoEffects
 );
 
 // Start the server

@@ -40,6 +40,8 @@ export const generateVideoSchema = z.object({
       "wan-i2v-480p",
       // PixVerse Models (2025)
       "pixverse-v4.5",
+      // Runway Gen Models (2025)
+      "gen4-turbo",
     ])
     .describe("The video generation model to use"),
   prompt: z.union([
@@ -205,6 +207,7 @@ export async function generateVideo({
 
         case "ltx-video":
           if (fps) input.fps = fps;
+          if (processedImageUrl) input.image = processedImageUrl;
           break;
 
         case "pyramid-flow":
@@ -215,7 +218,10 @@ export async function generateVideo({
         case "seedance-lite":
           if (resolution && modelConfig.resolutions.includes(resolution))
             input.resolution = resolution;
-          if (processedImageUrl) input.mode = "image-to-video";
+          if (processedImageUrl) {
+            input.mode = "image-to-video";
+            input.image_url = processedImageUrl;
+          }
           break;
 
         case "hailuo-2":
@@ -264,6 +270,11 @@ export async function generateVideo({
         case "pixverse-v4.5":
           if (resolution && modelConfig.resolutions.includes(resolution))
             input.resolution = resolution;
+          if (processedImageUrl) input.image = processedImageUrl;
+          break;
+
+        case "gen4-turbo":
+          if (aspect_ratio) input.aspect_ratio = aspect_ratio;
           if (processedImageUrl) input.image = processedImageUrl;
           break;
 

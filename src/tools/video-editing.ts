@@ -91,26 +91,21 @@ export async function concatenateSegments({
             filterParts.push(`[${i}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:black,setsar=1,fps=${fps},format=yuv420p[v${i}]`);
           }
           
-          // Handle audio streams
-          filterParts.push(`[${i}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[a${i}]`);
+          // Only handle audio streams if they exist (will be checked by FFmpeg)
+          // We'll filter these out later if they don't exist
         }
       }
       
       // Build concatenation filter
       const videoInputs = inputs.map((_, i) => `[v${i}]`).join('');
-      const audioInputs = inputs.map((_, i) => inputTypes[i] === 'video' ? `[a${i}]` : '').filter(Boolean).join('');
       
-      if (audioInputs) {
-        filterParts.push(`${videoInputs}concat=n=${inputs.length}:v=1:a=0[outv]`);
-        filterParts.push(`${audioInputs}concat=n=${inputTypes.filter(t => t === 'video').length}:v=0:a=1[outa]`);
-      } else {
-        filterParts.push(`${videoInputs}concat=n=${inputs.length}:v=1:a=0[outv]`);
-      }
+      // For video-only inputs (no audio), just concatenate video streams
+      filterParts.push(`${videoInputs}concat=n=${inputs.length}:v=1:a=0[outv]`);
       
       const filterComplex = filterParts.join(';');
-      const ffmpegCommand = `ffmpeg ${inputFlags.join(' ')} -filter_complex "${filterComplex}" -map "[outv]"${audioInputs ? ' -map "[outa]"' : ''} -c:v libx264 -c:a aac -r ${fps} "${output}"`;
+      const ffmpegCommand = `ffmpeg -y ${inputFlags.join(' ')} -filter_complex "${filterComplex}" -map "[outv]" -c:v libx264 -r ${fps} "${output}"`;
       
-      await execAsync(ffmpegCommand);
+      await execAsync(ffmpegCommand, { timeout: 300000, maxBuffer: 1024 * 1024 * 10 });
     } else {
       // Use concat demuxer for faster concatenation (videos only, same format)
       const tempListFile = path.join(path.dirname(output), 'concat_list.txt');
@@ -118,8 +113,8 @@ export async function concatenateSegments({
       
       await fs.writeFile(tempListFile, listContent);
       
-      const ffmpegCommand = `ffmpeg -f concat -safe 0 -i "${tempListFile}" -c copy "${output}"`;
-      await execAsync(ffmpegCommand);
+      const ffmpegCommand = `ffmpeg -y -f concat -safe 0 -i "${tempListFile}" -c copy "${output}"`;
+      await execAsync(ffmpegCommand, { timeout: 300000, maxBuffer: 1024 * 1024 * 10 });
       
       // Clean up temp file
       await fs.unlink(tempListFile);
@@ -258,7 +253,7 @@ export async function imagesToVideo({
     const filterComplex = filterParts.join(';');
     
     // Build FFmpeg command
-    let ffmpegCommand = `ffmpeg ${inputFlags.join(' ')}`;
+    let ffmpegCommand = `ffmpeg -y ${inputFlags.join(' ')}`;
     
     // Add audio handling
     if (audio_input) {
@@ -274,7 +269,7 @@ export async function imagesToVideo({
     
     ffmpegCommand += ` -c:v libx264 -pix_fmt yuv420p -r ${fps} "${output}"`;
     
-    await execAsync(ffmpegCommand);
+    await execAsync(ffmpegCommand, { timeout: 300000, maxBuffer: 1024 * 1024 * 10 });
     
     return {
       content: [

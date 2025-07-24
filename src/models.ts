@@ -89,7 +89,7 @@ export const VIDEO_MODELS: Record<string, VideoModelConfig> = {
   // LTX Video (2025)
   "ltx-video": {
     version: "lightricks/ltx-video",
-    type: "text-to-video",
+    type: "both",
     maxDuration: 10,
     resolutions: ["768p"],
     hasAudio: false,
@@ -154,7 +154,7 @@ export const VIDEO_MODELS: Record<string, VideoModelConfig> = {
   },
   "minimax-video": {
     version: "minimax/video-01",
-    type: "text-to-video",
+    type: "both",
     maxDuration: 6,
     resolutions: ["720p"],
     hasAudio: false,
@@ -305,6 +305,19 @@ export const VIDEO_MODELS: Record<string, VideoModelConfig> = {
     defaultParams: {
       duration: 5,
       resolution: "720p",
+    },
+  },
+
+  // Runway Gen Models (2025)
+  "gen4-turbo": {
+    version: "runwayml/gen4-turbo:0d5997be6feb0a5d1f296511d61d129d70cf10e1a30e2bcb25a7ec4addc034a9",
+    type: "image-to-video",
+    maxDuration: 10,
+    resolutions: ["720p"],
+    hasAudio: false,
+    defaultParams: {
+      duration: 5,
+      aspect_ratio: "16:9",
     },
   },
 };
