@@ -16,6 +16,10 @@ import {
   takeScreenshot,
   takeScreenshotSchema,
 } from "./tools/html-recording.js";
+import {
+  getHtmlVideoFeedback,
+  getHtmlVideoFeedbackSchema,
+} from "./tools/html-video-feedback.js";
 import { getModels, getModelsSchema } from "./tools/models-info.js";
 import { getContent, getContentSchema } from "./tools/video-content.js";
 import {
@@ -143,6 +147,13 @@ server.tool(
   "Takes a screenshot of an HTML file or HTML content",
   takeScreenshotSchema.shape,
   takeScreenshot
+);
+
+server.tool(
+  "get-html-video-feedback",
+  "Analyze video frames using Gemini AI to provide critical feedback on HTML/web page design, focusing on spacing, layout, and comprehensibility",
+  getHtmlVideoFeedbackSchema.shape,
+  getHtmlVideoFeedback
 );
 
 server.tool(

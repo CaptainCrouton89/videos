@@ -17,6 +17,7 @@
     "install-mcp": "tsc && chmod 755 dist/index.js && node scripts/update-config.js mcp"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.2.0",
     "@supabase/supabase-js": "^2.39.0",
     "axios": "^1.6.2",
