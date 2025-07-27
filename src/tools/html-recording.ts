@@ -1,13 +1,12 @@
 import { execSync } from "child_process";
 import {
   readFileSync,
-  readdirSync,
   renameSync,
-  statSync,
   unlinkSync,
 } from "fs";
 import { resolve } from "path";
-import { chromium } from "playwright";
+import puppeteer from "puppeteer";
+import { PuppeteerScreenRecorder } from "puppeteer-screen-recorder";
 import { z } from "zod";
 
 export const recordHtmlVideoSchema = z.object({
@@ -109,65 +108,66 @@ export async function recordHtmlVideo({
     }
 
     // Launch browser
-    const browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext({
-      recordVideo: {
-        dir: "./",
-        size: { width, height },
-      },
+    const browser = await puppeteer.launch({ 
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
-
-    const page = await context.newPage();
+    const page = await browser.newPage();
 
     // Set viewport to calculated dimensions
-    await page.setViewportSize({ width, height });
+    await page.setViewport({ width, height });
 
     // Navigate to the HTML file
-    await page.goto(`file://${resolvedHtmlPath}`);
+    await page.goto(`file://${resolvedHtmlPath}`, { waitUntil: 'networkidle0' });
+
+    // Create temp output path for the recording
+    const tempOutputPath = `temp_recording_${Date.now()}.mp4`;
+
+    // Set up the screen recorder
+    const recorder = new PuppeteerScreenRecorder(page, {
+      fps: 30,
+      videoFrame: {
+        width,
+        height,
+      },
+      aspectRatio: aspectRatio.replace('x', ':'),
+    });
+
+    // Start recording
+    await recorder.start(tempOutputPath);
 
     // Wait for the specified duration
-    await page.waitForTimeout(duration * 1000);
+    await new Promise(resolve => setTimeout(resolve, duration * 1000));
 
-    // Close the page and context to finalize the video
-    await page.close();
-    await context.close();
+    // Stop recording
+    await recorder.stop();
+
+    // Close the browser
     await browser.close();
 
-    // Find the generated WebM file (Playwright generates WebM by default)
-    const files = readdirSync("./").filter((f) => f.endsWith(".webm"));
-    const latestWebM = files.sort((a, b) => {
-      const statA = statSync(a);
-      const statB = statSync(b);
-      return statB.mtime.getTime() - statA.mtime.getTime();
-    })[0];
-
-    if (!latestWebM) {
-      throw new Error("No WebM file found after recording");
-    }
-
-    // Convert to desired format if not WebM
-    if (format !== "webm") {
+    // Convert to desired format if not MP4
+    if (format !== "mp4") {
       try {
         // Check if ffmpeg is available
         execSync("ffmpeg -version", { stdio: "ignore" });
 
         // Convert using ffmpeg
-        const ffmpegCommand = `ffmpeg -i "${latestWebM}" -y "${finalOutputPath}"`;
+        const ffmpegCommand = `ffmpeg -i "${tempOutputPath}" -y "${finalOutputPath}"`;
         execSync(ffmpegCommand, { stdio: "ignore" });
 
-        // Remove the original WebM file
-        unlinkSync(latestWebM);
+        // Remove the temp file
+        unlinkSync(tempOutputPath);
       } catch (error) {
         // If ffmpeg is not available, just rename the file
-        console.error("FFmpeg not found, keeping WebM format");
-        renameSync(latestWebM, finalOutputPath.replace(`.${format}`, ".webm"));
+        console.error("FFmpeg not found, keeping MP4 format");
+        renameSync(tempOutputPath, finalOutputPath.replace(`.${format}`, ".mp4"));
         throw new Error(
-          "FFmpeg not found. Install FFmpeg to convert to other formats, or use WebM format."
+          "FFmpeg not found. Install FFmpeg to convert to other formats, or use MP4 format."
         );
       }
     } else {
-      // Just rename the WebM file to the desired output path
-      renameSync(latestWebM, finalOutputPath);
+      // Just rename the MP4 file to the desired output path
+      renameSync(tempOutputPath, finalOutputPath);
     }
 
     const response = `Video recording completed successfully:
@@ -227,12 +227,14 @@ export async function takeScreenshot({
     const finalOutputPath = outputPath || `screenshot.${format}`;
 
     // Launch browser
-    const browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext();
-    const page = await context.newPage();
+    const browser = await puppeteer.launch({ 
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    const page = await browser.newPage();
 
     // Set viewport size
-    await page.setViewportSize({ width, height });
+    await page.setViewport({ width, height });
 
     if (htmlFilePath) {
       // Screenshot from file path
@@ -245,19 +247,19 @@ export async function takeScreenshot({
         throw new Error(`HTML file not found: ${resolvedHtmlPath}`);
       }
 
-      await page.goto(`file://${resolvedHtmlPath}`);
+      await page.goto(`file://${resolvedHtmlPath}`, { waitUntil: 'networkidle0' });
     } else {
       // Screenshot from HTML content
       await page.setContent(htmlContent!);
     }
 
     // Wait for page to load completely
-    await page.waitForLoadState("networkidle");
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Take screenshot
     await page.screenshot({
-      path: finalOutputPath,
-      type: format,
+      path: finalOutputPath as `${string}.png` | `${string}.jpeg`,
+      type: format as 'png' | 'jpeg',
       fullPage: fullPage,
     });
 

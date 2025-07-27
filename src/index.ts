@@ -133,7 +133,7 @@ server.tool(
 
 server.tool(
   "record-html-video",
-  "Opens an HTML file with Playwright and records it as a video at maximum dimensions (headless). Useful for creating video content that contains lots of text, logos, or abstract content. Can also be useful for videos that combine text with videos by layering them.",
+  "Opens an HTML file with Puppeteer and records it as a video at maximum dimensions (headless). Useful for creating video content that contains lots of text, logos, or abstract content. Can also be useful for videos that combine text with videos by layering them.",
   recordHtmlVideoSchema.shape,
   recordHtmlVideo
 );
