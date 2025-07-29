@@ -20,6 +20,10 @@ import {
   getHtmlVideoFeedback,
   getHtmlVideoFeedbackSchema,
 } from "./tools/html-video-feedback.js";
+import {
+  checkAsset9by16,
+  checkAsset9by16Schema,
+} from "./tools/check-asset-9by16.js";
 import { getModels, getModelsSchema } from "./tools/models-info.js";
 import { getContent, getContentSchema } from "./tools/video-content.js";
 import {
@@ -168,6 +172,13 @@ server.tool(
   "Apply advanced visual effects to videos including color grading, artistic filters, distortions, sci-fi effects, retro filters, and cinematic post-processing",
   advancedVideoEffectsSchema.shape,
   advancedVideoEffects
+);
+
+server.tool(
+  "check-asset-9by16",
+  "Analyze images for watermarks and provide cropping instructions for 9:16 vertical format. Rejects watermarked images and provides specific guidance for cropping or rejection",
+  checkAsset9by16Schema.shape,
+  checkAsset9by16
 );
 
 // Start the server
