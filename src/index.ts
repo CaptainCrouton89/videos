@@ -96,12 +96,12 @@ server.tool(
   concatenateSegments
 );
 
-server.tool(
-  "images-to-video",
-  "Create a video from a sequence of images with customizable durations and optional audio",
-  imagesToVideoSchema.shape,
-  imagesToVideo
-);
+// server.tool(
+//   "images-to-video",
+//   "Create a video from a sequence of images with customizable durations and optional audio",
+//   imagesToVideoSchema.shape,
+//   imagesToVideo
+// );
 
 server.tool(
   "separate-audio-and-video",
