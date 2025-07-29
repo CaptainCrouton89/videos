@@ -24,6 +24,10 @@ import {
   checkAsset9by16,
   checkAsset9by16Schema,
 } from "./tools/check-asset-9by16.js";
+import {
+  calculateDesiredCuts,
+  calculateDesiredCutsSchema,
+} from "./tools/calculate-cuts.js";
 import { getModels, getModelsSchema } from "./tools/models-info.js";
 import { getContent, getContentSchema } from "./tools/video-content.js";
 import {
@@ -179,6 +183,13 @@ server.tool(
   "Analyze images for watermarks and provide cropping instructions for 9:16 vertical format. Rejects watermarked images and provides specific guidance for cropping or rejection",
   checkAsset9by16Schema.shape,
   checkAsset9by16
+);
+
+server.tool(
+  "calculate-desired-cuts",
+  "Calculate the desired number of cuts for audio based on cut rate per minute and audio length in seconds",
+  calculateDesiredCutsSchema.shape,
+  calculateDesiredCuts
 );
 
 // Start the server
