@@ -100,12 +100,12 @@ server.tool(
   concatenateSegments
 );
 
-server.tool(
-  "images-to-video",
-  "Create a video from a sequence of images with customizable durations and optional audio",
-  imagesToVideoSchema.shape,
-  imagesToVideo
-);
+// server.tool(
+//   "images-to-video",
+//   "Create a video from a sequence of images with customizable durations and optional audio",
+//   imagesToVideoSchema.shape,
+//   imagesToVideo
+// );
 
 server.tool(
   "separate-audio-and-video",
@@ -137,7 +137,7 @@ server.tool(
 
 server.tool(
   "record-html-video",
-  "Opens an HTML file with Playwright and records it as a video at maximum dimensions (headless). Useful for creating video content that contains lots of text, logos, or abstract content. Can also be useful for videos that combine text with videos by layering them.",
+  "Opens an HTML file with Puppeteer and records it as a video at maximum dimensions (headless). Useful for creating video content that contains lots of text, logos, or abstract content. Can also be useful for videos that combine text with videos by layering them.",
   recordHtmlVideoSchema.shape,
   recordHtmlVideo
 );
