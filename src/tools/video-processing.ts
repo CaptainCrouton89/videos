@@ -6,6 +6,25 @@ import { z } from "zod";
 
 const execAsync = promisify(exec);
 
+// Wrapper to add timeout to exec calls
+async function execWithTimeout(command: string, timeoutMs: number = 300000) {
+  return new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Command timed out after ${timeoutMs}ms: ${command}`));
+    }, timeoutMs);
+
+    execAsync(command)
+      .then((result) => {
+        clearTimeout(timer);
+        resolve(result);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
+
 export const adjustVideoSpeedSchema = z.object({
   input: z.string().describe("Absolute path to the input video file"),
   speed_factor: z
@@ -32,9 +51,9 @@ export async function adjustVideoSpeed({
     const setptsValue = 1 / speed_factor;
 
     // Build FFmpeg command
-    const ffmpegCommand = `ffmpeg -i "${input}" -filter:v "setpts=${setptsValue}*PTS" -filter:a "atempo=${speed_factor}" -c:v libx264 -c:a aac "${output}"`;
+    const ffmpegCommand = `ffmpeg -y -i "${input}" -filter:v "setpts=${setptsValue}*PTS" -filter:a "atempo=${speed_factor}" -c:v libx264 -c:a aac "${output}"`;
 
-    const { stdout, stderr } = await execAsync(ffmpegCommand);
+    const { stdout, stderr } = await execWithTimeout(ffmpegCommand);
 
     if (verbose) {
       return {
@@ -118,9 +137,9 @@ export async function scaleVideo({
       : `scale=${width}:${height}`;
 
     // Build FFmpeg command
-    const ffmpegCommand = `ffmpeg -i "${input}" -vf "${scaleFilter}" -c:v libx264 -c:a copy "${output}"`;
+    const ffmpegCommand = `ffmpeg -y -i "${input}" -vf "${scaleFilter}" -c:v libx264 -c:a copy "${output}"`;
 
-    const { stdout, stderr } = await execAsync(ffmpegCommand);
+    const { stdout, stderr } = await execWithTimeout(ffmpegCommand);
 
     if (verbose) {
       return {
@@ -199,10 +218,10 @@ export async function applyVideoFilters({
     await fs.mkdir(path.dirname(output), { recursive: true });
 
     // Build FFmpeg command
-    const audioOption = copy_audio ? "-c:a copy" : "-c:a aac";
-    const ffmpegCommand = `ffmpeg -i "${input}" -vf "${filter_string}" -c:v libx264 ${audioOption} "${output}"`;
+    const audioOption = copy_audio ? "-c:a copy" : "-an";
+    const ffmpegCommand = `ffmpeg -y -i "${input}" -vf "${filter_string}" -c:v libx264 ${audioOption} "${output}"`;
 
-    const { stdout, stderr } = await execAsync(ffmpegCommand);
+    const { stdout, stderr } = await execWithTimeout(ffmpegCommand);
 
     if (verbose) {
       return {
@@ -215,7 +234,7 @@ export async function applyVideoFilters({
 **📁 Output:** ${output}
 **⚙️ Filter String:** ${filter_string}
 **🎵 Audio Processing:** ${
-              copy_audio ? "Copied unchanged" : "Re-encoded with AAC"
+              copy_audio ? "Copied unchanged" : "Removed (no audio)"
             }
 
 ✅ **Success!** Video filters have been applied and saved to the output file.
@@ -240,20 +259,30 @@ export async function applyVideoFilters({
       };
     }
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    let specificHelp = "";
+    if (errorMessage.includes("timed out")) {
+      specificHelp = "\n**⏱️ Timeout Issue:** The FFmpeg command took longer than 5 minutes. This might indicate:\n- Very large video file\n- Complex filter processing\n- System resource constraints\n- Hanging due to audio stream issues";
+    } else if (errorMessage.includes("audio") || errorMessage.includes("stream")) {
+      specificHelp = "\n**🎵 Audio Stream Issue:** Try setting copy_audio to true or use a different filter approach for files with problematic audio streams.";
+    } else if (errorMessage.includes("filter")) {
+      specificHelp = "\n**⚙️ Filter Issue:** Check your filter syntax. For trim filters, use: trim=start=0:duration=10.5";
+    }
+    
     return {
       content: [
         {
           type: "text" as const,
-          text: `❌ Error applying video filters: ${
-            error instanceof Error ? error.message : String(error)
-          }
+          text: `❌ Error applying video filters: ${errorMessage}${specificHelp}
 
 **Common Issues:**
 - FFmpeg not installed (install via: brew install ffmpeg)
 - Input file doesn't exist or is inaccessible
 - Output directory doesn't exist or lacks write permissions
 - Invalid filter string syntax
-- Filter not supported by your FFmpeg version`,
+- Filter not supported by your FFmpeg version
+- Timeout due to large files or complex processing`,
         },
       ],
     };

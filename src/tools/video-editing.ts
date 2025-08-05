@@ -98,14 +98,40 @@ export async function concatenateSegments({
         }
       }
       
-      // Build concatenation filter
+      // Build concatenation filter with audio preservation
       const videoInputs = inputs.map((_, i) => `[v${i}]`).join('');
       
-      // For video-only inputs (no audio), just concatenate video streams
-      filterParts.push(`${videoInputs}concat=n=${inputs.length}:v=1:a=0[outv]`);
+      // Detect which inputs have audio streams
+      const videoWithAudioInputs = [];
+      for (let i = 0; i < inputs.length; i++) {
+        if (inputTypes[i] === 'video') {
+          videoWithAudioInputs.push(i);
+        }
+      }
       
-      const filterComplex = filterParts.join(';');
-      const ffmpegCommand = `ffmpeg -y ${inputFlags.join(' ')} -filter_complex "${filterComplex}" -map "[outv]" -c:v libx264 -r ${fps} "${output}"`;
+      // If we have video inputs with potential audio, preserve audio streams
+      let ffmpegCommand;
+      if (videoWithAudioInputs.length > 0) {
+        // Build audio inputs for videos that might have audio
+        const audioInputs = videoWithAudioInputs.map(i => `[${i}:a]`).join('');
+        
+        // Concatenate video and audio streams separately
+        filterParts.push(`${videoInputs}concat=n=${inputs.length}:v=1:a=0[outv]`);
+        if (audioInputs) {
+          filterParts.push(`${audioInputs}concat=n=${videoWithAudioInputs.length}:v=0:a=1[outa]`);
+        }
+        
+        const filterComplex = filterParts.join(';');
+        ffmpegCommand = audioInputs 
+          ? `ffmpeg -y ${inputFlags.join(' ')} -filter_complex "${filterComplex}" -map "[outv]" -map "[outa]" -c:v libx264 -c:a aac -r ${fps} "${output}"`
+          : `ffmpeg -y ${inputFlags.join(' ')} -filter_complex "${filterComplex}" -map "[outv]" -c:v libx264 -r ${fps} "${output}"`;
+      } else {
+        // Images-only concatenation, no audio to preserve
+        filterParts.push(`${videoInputs}concat=n=${inputs.length}:v=1:a=0[outv]`);
+        
+        const filterComplex = filterParts.join(';');
+        ffmpegCommand = `ffmpeg -y ${inputFlags.join(' ')} -filter_complex "${filterComplex}" -map "[outv]" -c:v libx264 -r ${fps} "${output}"`;
+      }
       
       await execAsync(ffmpegCommand, { timeout: 300000, maxBuffer: 1024 * 1024 * 10 });
     } else {
