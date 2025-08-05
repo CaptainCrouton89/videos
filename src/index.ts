@@ -21,9 +21,9 @@ import {
   getHtmlVideoFeedbackSchema,
 } from "./tools/html-video-feedback.js";
 import {
-  checkAsset9by16,
-  checkAsset9by16Schema,
-} from "./tools/check-asset-9by16.js";
+  checkWatermark,
+  checkWatermarkSchema,
+} from "./tools/check-watermark.js";
 import {
   calculateDesiredCuts,
   calculateDesiredCutsSchema,
@@ -179,10 +179,10 @@ server.tool(
 );
 
 server.tool(
-  "check-asset-9by16",
-  "Analyze images for watermarks and provide cropping instructions for 9:16 vertical format. Rejects watermarked images and provides specific guidance for cropping or rejection",
-  checkAsset9by16Schema.shape,
-  checkAsset9by16
+  "check-watermark",
+  "Analyze images to detect watermarks including text, logos, patterns, and copyright marks",
+  checkWatermarkSchema.shape,
+  checkWatermark
 );
 
 server.tool(
