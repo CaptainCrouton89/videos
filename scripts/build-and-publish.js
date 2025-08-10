@@ -80,7 +80,7 @@ function main() {
 
     // Publish
     console.log("\n🚀 Publishing to npm...");
-    exec("npm publish --access public");
+    exec("npm publish --access public -y");
 
     console.log("\n✅ Successfully published!");
     console.log(`\nYou can now run: npx ${packageJson.name}`);
