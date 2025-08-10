@@ -10,7 +10,14 @@ const projectName = path.basename(currentDir);
 
 // Parse command line arguments
 const args = process.argv.slice(2);
-const validApps = ["cursor", "desktop", "code", "gemini", "mcp"];
+const validApps = [
+  "cursor",
+  "desktop",
+  "code",
+  "code-library",
+  "gemini",
+  "mcp",
+];
 
 // If no arguments provided, install to all apps
 let appsToInstall = validApps;
@@ -22,10 +29,10 @@ if (args.length > 0) {
     console.error(`❌ Invalid arguments: ${invalidArgs.join(", ")}`);
     console.error(`   Valid options: ${validApps.join(", ")}`);
     console.error(
-      `   Usage: node update-claude-config.js [cursor] [desktop] [code] [gemini] [mcp]`
+      `   Usage: node update-claude-config.js [cursor] [desktop] [code] [code-library] [gemini] [mcp]`
     );
     console.error(
-      `   Example: node update-claude-config.js cursor code gemini mcp`
+      `   Example: node update-claude-config.js cursor code code-library gemini mcp`
     );
     console.error(`   (No arguments installs to all applications)`);
     process.exit(1);
@@ -41,7 +48,12 @@ const claudeDesktopConfigPath = path.join(
 
 const cursorConfigPath = path.join(os.homedir(), ".cursor/mcp.json");
 
-const claudeCodeConfigPath = path.join(os.homedir(), ".claude.json");
+const claudeCodeConfigPath = path.join(os.homedir(), ".claude/mcp.json");
+
+const claudeCodeLibraryConfigPath = path.join(
+  os.homedir(),
+  ".claude/mcp-library/.mcp.json"
+);
 
 const geminiConfigPath = path.join(os.homedir(), ".gemini/settings.json");
 
@@ -83,10 +95,8 @@ function parseEnvFile() {
         console.log(
           `📄 Found .env.local with ${
             Object.keys(envVars).length
-          } environment variable(s): ${Object.keys(envVars).join(", ")}`
+          } environment variable(s)`
         );
-      } else {
-        console.log("📄 No .env.local file found or no environment variables parsed");
       }
     }
   } catch (error) {
@@ -99,12 +109,30 @@ function parseEnvFile() {
 // Parse environment variables
 const envVars = parseEnvFile();
 
-// Server configuration
-const serverConfig = {
+// Get package name from package.json
+const packageJsonPath = path.join(currentDir, "package.json");
+const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+const packageName = packageJson.name;
+
+// Server configuration for npx (remote)
+const npxServerConfig = {
+  command: "npx",
+  args: [`${packageName}@latest`],
+};
+
+if (Object.keys(envVars).length > 0) {
+  npxServerConfig.env = envVars;
+}
+
+// Server configuration for local development (mcp only)
+const localServerConfig = {
   command: "node",
   args: [path.join(currentDir, "dist/index.js")],
-  ...(Object.keys(envVars).length > 0 && { env: envVars }),
 };
+
+if (Object.keys(envVars).length > 0) {
+  localServerConfig.env = envVars;
+}
 
 // Function to update Claude Desktop config
 function updateClaudeDesktopConfig() {
@@ -122,7 +150,7 @@ function updateClaudeDesktopConfig() {
       config.mcpServers = {};
     }
 
-    config.mcpServers[projectName] = serverConfig;
+    config.mcpServers[projectName] = npxServerConfig;
 
     // Write the updated config back to the file
     fs.writeFileSync(
@@ -133,10 +161,7 @@ function updateClaudeDesktopConfig() {
     console.log(
       `✅ Successfully updated Claude Desktop config at ${claudeDesktopConfigPath}`
     );
-    console.log(`   Server: ${projectName} → ${serverConfig.command} ${serverConfig.args.join(" ")}`);
-    if (serverConfig.env) {
-      console.log(`   Environment variables: ${Object.keys(serverConfig.env).join(", ")}`);
-    }
+    console.log(`   Added server: ${projectName}`);
     return true;
   } catch (error) {
     console.log(`⚠️  Could not update Claude Desktop config: ${error.message}`);
@@ -166,15 +191,12 @@ function updateCursorConfig() {
       config.mcpServers = {};
     }
 
-    config.mcpServers[projectName] = serverConfig;
+    config.mcpServers[projectName] = npxServerConfig;
 
     // Write the updated config back to the file
     fs.writeFileSync(cursorConfigPath, JSON.stringify(config, null, 2), "utf8");
     console.log(`✅ Successfully updated Cursor config at ${cursorConfigPath}`);
-    console.log(`   Server: ${projectName} → ${serverConfig.command} ${serverConfig.args.join(" ")}`);
-    if (serverConfig.env) {
-      console.log(`   Environment variables: ${Object.keys(serverConfig.env).join(", ")}`);
-    }
+    console.log(`   Added server: ${projectName}`);
     return true;
   } catch (error) {
     console.log(`⚠️  Could not update Cursor config: ${error.message}`);
@@ -185,6 +207,12 @@ function updateCursorConfig() {
 // Function to update Claude Code config
 function updateClaudeCodeConfig() {
   try {
+    // Ensure .claude directory exists
+    const claudeDir = path.dirname(claudeCodeConfigPath);
+    if (!fs.existsSync(claudeDir)) {
+      fs.mkdirSync(claudeDir, { recursive: true });
+    }
+
     let config = {};
 
     // Read existing config if it exists
@@ -198,7 +226,7 @@ function updateClaudeCodeConfig() {
       config.mcpServers = {};
     }
 
-    config.mcpServers[projectName] = serverConfig;
+    config.mcpServers[projectName] = npxServerConfig;
 
     // Write the updated config back to the file
     fs.writeFileSync(
@@ -209,13 +237,53 @@ function updateClaudeCodeConfig() {
     console.log(
       `✅ Successfully updated Claude Code config at ${claudeCodeConfigPath}`
     );
-    console.log(`   Server: ${projectName} → ${serverConfig.command} ${serverConfig.args.join(" ")}`);
-    if (serverConfig.env) {
-      console.log(`   Environment variables: ${Object.keys(serverConfig.env).join(", ")}`);
-    }
+    console.log(`   Added server: ${projectName}`);
     return true;
   } catch (error) {
     console.log(`⚠️  Could not update Claude Code config: ${error.message}`);
+    return false;
+  }
+}
+
+// Function to update Claude Code Library config
+function updateClaudeCodeLibraryConfig() {
+  try {
+    // Ensure .claude/mcp-library directory exists
+    const claudeLibraryDir = path.dirname(claudeCodeLibraryConfigPath);
+    if (!fs.existsSync(claudeLibraryDir)) {
+      fs.mkdirSync(claudeLibraryDir, { recursive: true });
+    }
+
+    let config = {};
+
+    // Read existing config if it exists
+    if (fs.existsSync(claudeCodeLibraryConfigPath)) {
+      const configData = fs.readFileSync(claudeCodeLibraryConfigPath, "utf8");
+      config = JSON.parse(configData);
+    }
+
+    // Add our MCP server to the config
+    if (!config.mcpServers) {
+      config.mcpServers = {};
+    }
+
+    config.mcpServers[projectName] = npxServerConfig;
+
+    // Write the updated config back to the file
+    fs.writeFileSync(
+      claudeCodeLibraryConfigPath,
+      JSON.stringify(config, null, 2),
+      "utf8"
+    );
+    console.log(
+      `✅ Successfully updated Claude Code Library config at ${claudeCodeLibraryConfigPath}`
+    );
+    console.log(`   Added server: ${projectName}`);
+    return true;
+  } catch (error) {
+    console.log(
+      `⚠️  Could not update Claude Code Library config: ${error.message}`
+    );
     return false;
   }
 }
@@ -242,15 +310,12 @@ function updateGeminiConfig() {
       config.mcpServers = {};
     }
 
-    config.mcpServers[projectName] = serverConfig;
+    config.mcpServers[projectName] = npxServerConfig;
 
     // Write the updated config back to the file
     fs.writeFileSync(geminiConfigPath, JSON.stringify(config, null, 2), "utf8");
     console.log(`✅ Successfully updated Gemini config at ${geminiConfigPath}`);
-    console.log(`   Server: ${projectName} → ${serverConfig.command} ${serverConfig.args.join(" ")}`);
-    if (serverConfig.env) {
-      console.log(`   Environment variables: ${Object.keys(serverConfig.env).join(", ")}`);
-    }
+    console.log(`   Added server: ${projectName}`);
     return true;
   } catch (error) {
     console.log(`⚠️  Could not update Gemini config: ${error.message}`);
@@ -276,15 +341,12 @@ function updateMcpConfig() {
       config.mcpServers = {};
     }
 
-    config.mcpServers[projectName] = serverConfig;
+    config.mcpServers[projectName] = localServerConfig;
 
     // Write the updated config back to the file
     fs.writeFileSync(mcpConfigPath, JSON.stringify(config, null, 2), "utf8");
     console.log(`✅ Successfully updated MCP config at ${mcpConfigPath}`);
-    console.log(`   Server: ${projectName} → ${serverConfig.command} ${serverConfig.args.join(" ")}`);
-    if (serverConfig.env) {
-      console.log(`   Environment variables: ${Object.keys(serverConfig.env).join(", ")}`);
-    }
+    console.log(`   Added server: ${projectName}`);
     return true;
   } catch (error) {
     console.log(`⚠️  Could not update MCP config: ${error.message}`);
@@ -295,15 +357,13 @@ function updateMcpConfig() {
 // Main execution
 console.log(`🚀 Installing MCP server: ${projectName}`);
 console.log(`   Server path: ${path.join(currentDir, "dist/index.js")}`);
-console.log(`   Target applications: ${appsToInstall.join(", ")}`);
-if (Object.keys(envVars).length > 0) {
-  console.log(`   Environment variables: ${Object.keys(envVars).join(", ")}`);
-}
+console.log(`   Installing to: ${appsToInstall.join(", ")}`);
 console.log("");
 
 let claudeSuccess = false;
 let cursorSuccess = false;
 let claudeCodeSuccess = false;
+let claudeCodeLibrarySuccess = false;
 let geminiSuccess = false;
 let mcpSuccess = false;
 
@@ -320,6 +380,10 @@ if (appsToInstall.includes("code")) {
   claudeCodeSuccess = updateClaudeCodeConfig();
 }
 
+if (appsToInstall.includes("code-library")) {
+  claudeCodeLibrarySuccess = updateClaudeCodeLibraryConfig();
+}
+
 if (appsToInstall.includes("gemini")) {
   geminiSuccess = updateGeminiConfig();
 }
@@ -333,6 +397,7 @@ if (
   claudeSuccess ||
   cursorSuccess ||
   claudeCodeSuccess ||
+  claudeCodeLibrarySuccess ||
   geminiSuccess ||
   mcpSuccess
 ) {
@@ -352,6 +417,12 @@ if (
     console.log("   • Restart claude-code to use the new server");
   }
 
+  if (claudeCodeLibrarySuccess) {
+    console.log(
+      "   • Restart claude-code and run /init-workspace to configure mcps for the new workspace"
+    );
+  }
+
   if (geminiSuccess) {
     console.log("   • Restart Gemini to use the new server");
   }
@@ -359,17 +430,6 @@ if (
   if (mcpSuccess) {
     console.log("   • MCP configuration updated in .mcp.json");
   }
-
-  console.log("");
-  console.log("📖 Usage:");
-  console.log("   You can now use the video generation tools including:");
-  console.log("   • generate-video - Generate videos from text or images");
-  console.log("   • get-video-metadata - Extract video file information");
-  console.log("   • adjust-video-speed - Change video playback speed");
-  console.log("   • scale-video - Resize video resolution");
-  console.log("   • apply-video-filters - Apply FFmpeg filters");
-  console.log("   • concatenate-segments - Join multiple videos");
-  console.log("   • separate-audio-and-video - Split audio and video tracks");
 } else {
   console.log("❌ Installation failed for selected applications");
   console.log(
