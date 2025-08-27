@@ -20,6 +20,14 @@ import {
   getHtmlVideoFeedback,
   getHtmlVideoFeedbackSchema,
 } from "./tools/html-video-feedback.js";
+import {
+  checkWatermark,
+  checkWatermarkSchema,
+} from "./tools/check-watermark.js";
+import {
+  calculateDesiredCuts,
+  calculateDesiredCutsSchema,
+} from "./tools/calculate-cuts.js";
 import { getModels, getModelsSchema } from "./tools/models-info.js";
 import { getContent, getContentSchema } from "./tools/video-content.js";
 import {
@@ -100,12 +108,12 @@ server.tool(
   concatenateSegments
 );
 
-server.tool(
-  "images-to-video",
-  "Create a video from a sequence of images with customizable durations and optional audio",
-  imagesToVideoSchema.shape,
-  imagesToVideo
-);
+// server.tool(
+//   "images-to-video",
+//   "Create a video from a sequence of images with customizable durations and optional audio",
+//   imagesToVideoSchema.shape,
+//   imagesToVideo
+// );
 
 server.tool(
   "separate-audio-and-video",
@@ -137,7 +145,7 @@ server.tool(
 
 server.tool(
   "record-html-video",
-  "Opens an HTML file with Playwright and records it as a video at maximum dimensions (headless). Useful for creating video content that contains lots of text, logos, or abstract content. Can also be useful for videos that combine text with videos by layering them.",
+  "Opens an HTML file with Puppeteer and records it as a video at maximum dimensions (headless). Useful for creating video content that contains lots of text, logos, or abstract content. Can also be useful for videos that combine text with videos by layering them.",
   recordHtmlVideoSchema.shape,
   recordHtmlVideo
 );
@@ -168,6 +176,20 @@ server.tool(
   "Apply advanced visual effects to videos including color grading, artistic filters, distortions, sci-fi effects, retro filters, and cinematic post-processing",
   advancedVideoEffectsSchema.shape,
   advancedVideoEffects
+);
+
+server.tool(
+  "check-watermark",
+  "Analyze images to detect watermarks including text, logos, patterns, and copyright marks",
+  checkWatermarkSchema.shape,
+  checkWatermark
+);
+
+server.tool(
+  "calculate-desired-cuts",
+  "Calculate the desired number of cuts for audio based on cut rate per minute and audio length in seconds",
+  calculateDesiredCutsSchema.shape,
+  calculateDesiredCuts
 );
 
 // Start the server

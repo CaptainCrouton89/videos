@@ -79,18 +79,18 @@ export async function concatenateSegments({
           
           // Scale and format image
           if (resolution) {
-            filterParts.push(`[${i}:v]scale=${resolution},setsar=1,fps=${fps},format=yuv420p[v${i}]`);
+            filterParts.push(`[${i}:v]scale=${resolution},setsar=1,fps=${fps},format=yuv420p,setpts=PTS-STARTPTS[v${i}]`);
           } else {
-            filterParts.push(`[${i}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:black,setsar=1,fps=${fps},format=yuv420p[v${i}]`);
+            filterParts.push(`[${i}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:black,setsar=1,fps=${fps},format=yuv420p,setpts=PTS-STARTPTS[v${i}]`);
           }
         } else if (type === 'video') {
           inputFlags.push(`-i "${input}"`);
           
           // Scale and format video
           if (resolution) {
-            filterParts.push(`[${i}:v]scale=${resolution},setsar=1,fps=${fps},format=yuv420p[v${i}]`);
+            filterParts.push(`[${i}:v]scale=${resolution},setsar=1,fps=${fps},format=yuv420p,setpts=PTS-STARTPTS[v${i}]`);
           } else {
-            filterParts.push(`[${i}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:black,setsar=1,fps=${fps},format=yuv420p[v${i}]`);
+            filterParts.push(`[${i}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:black,setsar=1,fps=${fps},format=yuv420p,setpts=PTS-STARTPTS[v${i}]`);
           }
           
           // Only handle audio streams if they exist (will be checked by FFmpeg)
@@ -269,9 +269,9 @@ export async function imagesToVideo({
     // Build scale and format filters for each image
     for (let i = 0; i < images.length; i++) {
       if (resolution) {
-        filterParts.push(`[${i}:v]scale=${resolution},setsar=1,fps=${fps},format=yuv420p[v${i}]`);
+        filterParts.push(`[${i}:v]scale=${resolution},setsar=1,fps=${fps},format=yuv420p,setpts=PTS-STARTPTS[v${i}]`);
       } else {
-        filterParts.push(`[${i}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:black,setsar=1,fps=${fps},format=yuv420p[v${i}]`);
+        filterParts.push(`[${i}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:black,setsar=1,fps=${fps},format=yuv420p,setpts=PTS-STARTPTS[v${i}]`);
       }
     }
     
